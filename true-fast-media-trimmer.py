@@ -1,6 +1,5 @@
 # === [БЛОК 1: АВТОУСТАНОВКА МОДУЛЕЙ И ИМПОРТЫ] ===
 import ctypes
-import importlib.util
 import json
 import re
 import shutil
@@ -10,28 +9,61 @@ import threading
 import time
 import urllib.request
 from pathlib import Path
+
 # === [БЛОК 2: ИМПОРТЫ PYSIDE6, ВЕРСИЯ И КОНСТАНТЫ] ===
 import numpy as np
-from PySide6.QtCore import QIODevice, Qt, QThread, QTimer, QUrl, QRectF, Signal
-from PySide6.QtGui import QColor, QImage, QKeySequence, QPainter, QPen, QPixmap, QShortcut
-from PySide6.QtMultimedia import QAudio, QAudioFormat, QAudioOutput, QAudioSink, QMediaPlayer, QVideoSink
+from PySide6.QtCore import QIODevice, QRectF, Qt, QThread, QTimer, QUrl, Signal
+from PySide6.QtGui import (
+    QColor,
+    QImage,
+    QKeySequence,
+    QPainter,
+    QPen,
+    QPixmap,
+    QShortcut,
+)
+from PySide6.QtMultimedia import (
+    QAudio,
+    QAudioFormat,
+    QAudioOutput,
+    QAudioSink,
+    QMediaPlayer,
+    QVideoSink,
+)
 from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import (
-    QApplication, QCheckBox, QColorDialog, QComboBox,
-    QDialog, QFileDialog, QFrame, QGraphicsScene,
-    QGraphicsView, QGridLayout, QHBoxLayout, QLabel,
-    QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar,
-    QPushButton, QScrollArea, QSlider, QStackedWidget,
-    QVBoxLayout, QWidget
+    QApplication,
+    QCheckBox,
+    QColorDialog,
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QFrame,
+    QGraphicsScene,
+    QGraphicsView,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QScrollArea,
+    QSlider,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
 )
-
 
 if sys.platform == "win32":
     import winreg
 
 try:
     import imageio_ffmpeg
+
     FFMPEG_BIN = imageio_ffmpeg.get_ffmpeg_exe()
 except ImportError:
     FFMPEG_BIN = "ffmpeg"
@@ -81,7 +113,9 @@ def load_app_settings() -> dict:
 
 def save_app_settings(data: dict):
     try:
-        SETTINGS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        SETTINGS_FILE.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
     except Exception:
         pass
 
@@ -90,6 +124,8 @@ def get_contrast_text_color(hex_color: str) -> str:
     c = QColor(hex_color)
     luminance = 0.299 * c.red() + 0.587 * c.green() + 0.114 * c.blue()
     return "#111111" if luminance > 140 else "#FFFFFF"
+
+
 # === [БЛОК 4: СИСТЕМНЫЕ ФУНКЦИИ WINDOWS И ЭНКОДЕР] ===
 def set_windows_titlebar_theme(widget: QWidget, is_dark: bool):
     if sys.platform != "win32":
@@ -97,8 +133,12 @@ def set_windows_titlebar_theme(widget: QWidget, is_dark: bool):
     try:
         hwnd = int(widget.winId())
         val = ctypes.c_int(1 if is_dark else 0)
-        ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(val), ctypes.sizeof(val))
-        ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 19, ctypes.byref(val), ctypes.sizeof(val))
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd, 20, ctypes.byref(val), ctypes.sizeof(val)
+        )
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd, 19, ctypes.byref(val), ctypes.sizeof(val)
+        )
     except Exception:
         pass
 
@@ -137,11 +177,27 @@ def detect_best_video_encoder() -> str:
     ]
     for codec, extra in candidates:
         cmd = [
-            FFMPEG_BIN, "-y", "-f", "lavfi", "-i", "color=c=black:s=640x360:d=0.1",
-            "-c:v", codec, *extra, "-f", "null", "-"
+            FFMPEG_BIN,
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=640x360:d=0.1",
+            "-c:v",
+            codec,
+            *extra,
+            "-f",
+            "null",
+            "-",
         ]
         try:
-            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags, timeout=8)
+            res = subprocess.run(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=flags,
+                timeout=8,
+            )
             if res.returncode == 0:
                 return codec
         except Exception:
@@ -150,6 +206,8 @@ def detect_best_video_encoder() -> str:
 
 
 BEST_GPU_ENCODER = detect_best_video_encoder()
+
+
 # === [БЛОК 5: КОНТЕКСТНОЕ МЕНЮ WINDOWS И ОБНОВЛЕНИЯ GITHUB] ===
 def register_context_menu(enable: bool):
     if sys.platform != "win32":
@@ -167,24 +225,38 @@ def register_context_menu(enable: bool):
         if enable:
             launcher_cmd.write_text(
                 f'@echo off\r\nstart "" "{runner}" "{script_path}" %*\r\n',
-                encoding="cp866"
+                encoding="cp866",
             )
             cmd_str = f'"{launcher_cmd}" "%1"'
 
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, app_key) as k:
-                winreg.SetValueEx(k, "FriendlyAppName", 0, winreg.REG_SZ, "Медиа Обрезчик")
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, rf"{app_key}\DefaultIcon") as ik:
+                winreg.SetValueEx(
+                    k, "FriendlyAppName", 0, winreg.REG_SZ, "Медиа Обрезчик"
+                )
+            with winreg.CreateKey(
+                winreg.HKEY_CURRENT_USER, rf"{app_key}\DefaultIcon"
+            ) as ik:
                 winreg.SetValueEx(ik, "", 0, winreg.REG_SZ, f'"{runner}",0')
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, rf"{app_key}\shell\open\command") as ck:
+            with winreg.CreateKey(
+                winreg.HKEY_CURRENT_USER, rf"{app_key}\shell\open\command"
+            ) as ck:
                 winreg.SetValueEx(ck, "", 0, winreg.REG_SZ, cmd_str)
 
             for ext in all_exts:
-                ext_key = rf"Software\Classes\.{ext}\OpenWithList\MediaTrimmerLauncher.cmd"
+                ext_key = (
+                    rf"Software\Classes\.{ext}\OpenWithList\MediaTrimmerLauncher.cmd"
+                )
                 with winreg.CreateKey(winreg.HKEY_CURRENT_USER, ext_key):
                     pass
         else:
             launcher_cmd.unlink(missing_ok=True)
-            for sub in (r"shell\open\command", r"shell\open", "shell", "DefaultIcon", ""):
+            for sub in (
+                r"shell\open\command",
+                r"shell\open",
+                "shell",
+                "DefaultIcon",
+                "",
+            ):
                 try:
                     target = rf"{app_key}\{sub}".rstrip("\\")
                     winreg.DeleteKey(winreg.HKEY_CURRENT_USER, target)
@@ -192,7 +264,10 @@ def register_context_menu(enable: bool):
                     pass
             for ext in all_exts:
                 try:
-                    winreg.DeleteKey(winreg.HKEY_CURRENT_USER, rf"Software\Classes\.{ext}\OpenWithList\MediaTrimmerLauncher.cmd")
+                    winreg.DeleteKey(
+                        winreg.HKEY_CURRENT_USER,
+                        rf"Software\Classes\.{ext}\OpenWithList\MediaTrimmerLauncher.cmd",
+                    )
                 except Exception:
                     pass
     except Exception:
@@ -206,7 +281,9 @@ def _parse_ver_tuple(ver_str: str) -> tuple:
 
 def check_github_update() -> tuple:
     try:
-        req = urllib.request.Request(GITHUB_VERSION_URL, headers={"User-Agent": "MediaTrimmerUpdater"})
+        req = urllib.request.Request(
+            GITHUB_VERSION_URL, headers={"User-Agent": "MediaTrimmerUpdater"}
+        )
         with urllib.request.urlopen(req, timeout=6) as resp:
             remote_ver = resp.read().decode("utf-8", errors="ignore").strip()
         if not remote_ver or len(remote_ver) > 25:
@@ -218,7 +295,9 @@ def check_github_update() -> tuple:
 
 def download_and_restart_update() -> tuple:
     try:
-        req = urllib.request.Request(GITHUB_SCRIPT_URL, headers={"User-Agent": "MediaTrimmerUpdater"})
+        req = urllib.request.Request(
+            GITHUB_SCRIPT_URL, headers={"User-Agent": "MediaTrimmerUpdater"}
+        )
         with urllib.request.urlopen(req, timeout=15) as resp:
             new_code = resp.read().decode("utf-8")
         if "MediaTrimmerWindow" not in new_code:
@@ -227,6 +306,8 @@ def download_and_restart_update() -> tuple:
         return True, ""
     except Exception as e:
         return False, f"Ошибка при скачивании обновления:\n{e}"
+
+
 # === [БЛОК 6.1: ЭКСТРАКТОР КАДРОВ ДЛЯ СЕТКИ И СКРАББИНГА] ===
 class FrameScrubWorker(QThread):
     frame_ready = Signal(int, int, QImage)
@@ -255,7 +336,15 @@ class FrameScrubWorker(QThread):
         with self.lock:
             self.is_playing = is_playing
 
-    def configure(self, file_path: str, load_id: int, target_h: int, fps: float = 30.0, src_w: int = 1920, src_h: int = 1080):
+    def configure(
+        self,
+        file_path: str,
+        load_id: int,
+        target_h: int,
+        fps: float = 30.0,
+        src_w: int = 1920,
+        src_h: int = 1080,
+    ):
         with self.lock:
             self.file_path = file_path
             self.load_id = load_id
@@ -273,13 +362,17 @@ class FrameScrubWorker(QThread):
     def update_anchor(self, _anchor_sec: float):
         pass
 
-    def request_tiered_grid(self, total_dur_sec: float, _center_sec: float, track_initial: bool = False):
+    def request_tiered_grid(
+        self, total_dur_sec: float, _center_sec: float, track_initial: bool = False
+    ):
         with self.lock:
             if not self.file_path or total_dur_sec <= 0.2:
                 if track_initial:
                     self.batch_progress.emit(1, 1)
                 return
-            target_cnt = min(50, max(20, int(total_dur_sec / 180.0) if total_dur_sec > 3600 else 40))
+            target_cnt = min(
+                50, max(20, int(total_dur_sec / 180.0) if total_dur_sec > 3600 else 40)
+            )
             step_sec = max(1.0, total_dur_sec / target_cnt)
             actual_cnt = max(1, int(total_dur_sec / step_sec))
             self.bulk_job = (total_dur_sec, step_sec, actual_cnt)
@@ -316,7 +409,9 @@ class FrameScrubWorker(QThread):
 
     def _get_proc_flags_and_hw(self) -> tuple:
         no_win = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
-        below_norm = 0x00004000 if hasattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS") else 0
+        below_norm = (
+            0x00004000 if hasattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS") else 0
+        )
         with self.lock:
             playing = self.is_playing
         if playing or not self.use_gpu:
@@ -334,7 +429,9 @@ class FrameScrubWorker(QThread):
             rem -= len(part)
         return b"".join(chunks)
 
-    def _run_urgent_20sec_strip(self, cur_file: str, cur_load: int, out_w: int, out_h: int, center_sec: float):
+    def _run_urgent_20sec_strip(
+        self, cur_file: str, cur_load: int, out_w: int, out_h: int, center_sec: float
+    ):
         flags, hw_args = self._get_proc_flags_and_hw()
         target_fps = 12
         step_ms = int(round(1000.0 / target_fps))
@@ -342,18 +439,35 @@ class FrameScrubWorker(QThread):
         span_sec = 20.0
         frame_bytes = out_w * out_h * 3
         cmd = [
-            FFMPEG_BIN, "-loglevel", "quiet",
+            FFMPEG_BIN,
+            "-loglevel",
+            "quiet",
             *hw_args,
-            "-ss", f"{batch_start:.3f}",
-            "-i", cur_file,
-            "-an", "-sn", "-dn",
-            "-t", f"{span_sec:.3f}",
-            "-vf", f"fps={target_fps},scale={out_w}:{out_h}:flags=fast_bilinear",
-            "-f", "rawvideo", "-pix_fmt", "rgb24",
-            "pipe:1"
+            "-ss",
+            f"{batch_start:.3f}",
+            "-i",
+            cur_file,
+            "-an",
+            "-sn",
+            "-dn",
+            "-t",
+            f"{span_sec:.3f}",
+            "-vf",
+            f"fps={target_fps},scale={out_w}:{out_h}:flags=fast_bilinear",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "pipe:1",
         ]
         try:
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=frame_bytes * 2, creationflags=flags)
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                bufsize=frame_bytes * 2,
+                creationflags=flags,
+            )
             idx = 0
             max_frames = int(span_sec * target_fps) + 2
             while self.running and cur_load == self.load_id and idx < max_frames:
@@ -365,13 +479,16 @@ class FrameScrubWorker(QThread):
                     break
                 qimg = QImage(raw, out_w, out_h, out_w * 3, QImage.Format_RGB888).copy()
                 if not qimg.isNull():
-                    self.frame_ready.emit(cur_load, int(round(batch_start * 1000)) + idx * step_ms, qimg)
+                    self.frame_ready.emit(
+                        cur_load, int(round(batch_start * 1000)) + idx * step_ms, qimg
+                    )
                 idx += 1
             proc.kill()
             proc.wait(timeout=0.2)
         except Exception:
             pass
-# === [БЛОК 6.2: ЦИКЛ ПОТОКА КАДРОВ И ПОТОКОВЫЙ АУДИОДЕКОДЕР] ===
+
+    # === [БЛОК 6.2: ЦИКЛ ПОТОКА КАДРОВ И ПОТОКОВЫЙ АУДИОДЕКОДЕР] ===
     def run(self):
         while self.running:
             with self.lock:
@@ -392,30 +509,61 @@ class FrameScrubWorker(QThread):
                         bulk_info = self.bulk_job
                         self.bulk_job = None
 
-            if not cur_file or (urgent_sm is None and single_sm is None and bulk_info is None):
+            if not cur_file or (
+                urgent_sm is None and single_sm is None and bulk_info is None
+            ):
                 self.msleep(8)
                 continue
 
             out_w, out_h = self._calc_out_size(cur_th, sw, sh)
 
             if urgent_sm is not None:
-                self._run_urgent_20sec_strip(cur_file, cur_load, out_w, out_h, urgent_sm / 1000.0)
+                self._run_urgent_20sec_strip(
+                    cur_file, cur_load, out_w, out_h, urgent_sm / 1000.0
+                )
                 continue
 
             if single_sm is not None:
                 flags, hw_args = self._get_proc_flags_and_hw()
                 frame_bytes = out_w * out_h * 3
                 cmd = [
-                    FFMPEG_BIN, "-loglevel", "quiet", *hw_args,
-                    "-ss", f"{single_sm / 1000.0:.3f}", "-i", cur_file,
-                    "-an", "-sn", "-dn", "-frames:v", "1",
-                    "-vf", f"scale={out_w}:{out_h}:flags=fast_bilinear",
-                    "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"
+                    FFMPEG_BIN,
+                    "-loglevel",
+                    "quiet",
+                    *hw_args,
+                    "-ss",
+                    f"{single_sm / 1000.0:.3f}",
+                    "-i",
+                    cur_file,
+                    "-an",
+                    "-sn",
+                    "-dn",
+                    "-frames:v",
+                    "1",
+                    "-vf",
+                    f"scale={out_w}:{out_h}:flags=fast_bilinear",
+                    "-f",
+                    "rawvideo",
+                    "-pix_fmt",
+                    "rgb24",
+                    "pipe:1",
                 ]
                 try:
-                    res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, creationflags=flags, timeout=2.0)
+                    res = subprocess.run(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                        creationflags=flags,
+                        timeout=2.0,
+                    )
                     if cur_load == self.load_id and len(res.stdout) >= frame_bytes:
-                        qimg = QImage(res.stdout[:frame_bytes], out_w, out_h, out_w * 3, QImage.Format_RGB888).copy()
+                        qimg = QImage(
+                            res.stdout[:frame_bytes],
+                            out_w,
+                            out_h,
+                            out_w * 3,
+                            QImage.Format_RGB888,
+                        ).copy()
                         if not qimg.isNull():
                             self.frame_ready.emit(cur_load, single_sm, qimg)
                 except Exception:
@@ -428,16 +576,37 @@ class FrameScrubWorker(QThread):
                 frame_bytes = out_w * out_h * 3
                 out_fps = 1.0 / step_sec
                 cmd = [
-                    FFMPEG_BIN, "-loglevel", "quiet", *hw_args,
-                    "-skip_frame", "nokey", "-i", cur_file,
-                    "-an", "-sn", "-dn",
-                    "-vf", f"fps={out_fps:.6f},scale={out_w}:{out_h}:flags=fast_bilinear",
-                    "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"
+                    FFMPEG_BIN,
+                    "-loglevel",
+                    "quiet",
+                    *hw_args,
+                    "-skip_frame",
+                    "nokey",
+                    "-i",
+                    cur_file,
+                    "-an",
+                    "-sn",
+                    "-dn",
+                    "-vf",
+                    f"fps={out_fps:.6f},scale={out_w}:{out_h}:flags=fast_bilinear",
+                    "-f",
+                    "rawvideo",
+                    "-pix_fmt",
+                    "rgb24",
+                    "pipe:1",
                 ]
                 try:
-                    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=frame_bytes * 2, creationflags=flags)
+                    proc = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                        bufsize=frame_bytes * 2,
+                        creationflags=flags,
+                    )
                     idx = 0
-                    while self.running and cur_load == self.load_id and idx < actual_cnt:
+                    while (
+                        self.running and cur_load == self.load_id and idx < actual_cnt
+                    ):
                         with self.lock:
                             if self.urgent_queue or self.single_queue:
                                 self.bulk_job = (_dur, step_sec, actual_cnt)
@@ -445,20 +614,30 @@ class FrameScrubWorker(QThread):
                         raw = self._read_exact_bytes(proc.stdout, frame_bytes)
                         if len(raw) < frame_bytes:
                             break
-                        qimg = QImage(raw, out_w, out_h, out_w * 3, QImage.Format_RGB888).copy()
+                        qimg = QImage(
+                            raw, out_w, out_h, out_w * 3, QImage.Format_RGB888
+                        ).copy()
                         if not qimg.isNull():
-                            self.frame_ready.emit(cur_load, int(round(idx * step_sec * 1000)), qimg)
+                            self.frame_ready.emit(
+                                cur_load, int(round(idx * step_sec * 1000)), qimg
+                            )
                         idx += 1
                         with self.lock:
                             if self.track_progress and cur_load == self.load_id:
                                 self.done_tracked = min(self.total_tracked, idx)
-                                self.batch_progress.emit(self.done_tracked, self.total_tracked)
+                                self.batch_progress.emit(
+                                    self.done_tracked, self.total_tracked
+                                )
                     proc.kill()
                     proc.wait(timeout=0.2)
                 except Exception:
                     pass
                 with self.lock:
-                    if self.track_progress and cur_load == self.load_id and self.bulk_job is None:
+                    if (
+                        self.track_progress
+                        and cur_load == self.load_id
+                        and self.bulk_job is None
+                    ):
                         self.batch_progress.emit(self.total_tracked, self.total_tracked)
                         self.track_progress = False
 
@@ -493,19 +672,35 @@ class GainAudioStream(QIODevice):
         self.stop_proc()
         flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
         cmd = [
-            FFMPEG_BIN, "-loglevel", "quiet",
-            "-ss", f"{max(0.0, sec):.3f}",
-            "-i", self.file_path,
-            "-vn", "-sn", "-dn",
-            "-map", f"0:a:{self.track_idx}",
-            "-f", "s16le", "-acodec", "pcm_s16le",
-            "-ac", str(self.channels), "-ar", str(self.sample_rate),
-            "pipe:1"
+            FFMPEG_BIN,
+            "-loglevel",
+            "quiet",
+            "-ss",
+            f"{max(0.0, sec):.3f}",
+            "-i",
+            self.file_path,
+            "-vn",
+            "-sn",
+            "-dn",
+            "-map",
+            f"0:a:{self.track_idx}",
+            "-f",
+            "s16le",
+            "-acodec",
+            "pcm_s16le",
+            "-ac",
+            str(self.channels),
+            "-ar",
+            str(self.sample_rate),
+            "pipe:1",
         ]
         try:
             self.proc = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                bufsize=4096, creationflags=flags
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                bufsize=4096,
+                creationflags=flags,
             )
         except Exception:
             self.proc = None
@@ -532,6 +727,8 @@ class GainAudioStream(QIODevice):
         else:
             amplified = np.clip(amplified, -32768.0, 32767.0)
         return amplified.astype(np.int16).tobytes()
+
+
 # === [БЛОК 7: ФОНОВЫЙ ПОТОК FFMPEG С РАСШИРЕННЫМ ЛОГОМ ОШИБОК] ===
 class FFmpegTaskThread(QThread):
     progress_updated = Signal(int, str)
@@ -558,8 +755,13 @@ class FFmpegTaskThread(QThread):
         try:
             flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
             self.proc = subprocess.Popen(
-                self.cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, encoding="utf-8", errors="ignore", creationflags=flags
+                self.cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="ignore",
+                creationflags=flags,
             )
             start_t = time.time()
             time_re = re.compile(r"time=(\d+):(\d+):(\d+(?:\.\d+)?)")
@@ -574,8 +776,14 @@ class FFmpegTaskThread(QThread):
                         last_lines.pop(0)
                 m = time_re.search(line)
                 if m:
-                    cur_sec = int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
-                    pct = min(99, max(1, int((cur_sec / self.total_duration_sec) * 100)))
+                    cur_sec = (
+                        int(m.group(1)) * 3600
+                        + int(m.group(2)) * 60
+                        + float(m.group(3))
+                    )
+                    pct = min(
+                        99, max(1, int((cur_sec / self.total_duration_sec) * 100))
+                    )
                     elapsed = time.time() - start_t
                     if pct > 2 and elapsed > 0.4:
                         eta_sec = int((elapsed / pct) * (100 - pct))
@@ -594,10 +802,16 @@ class FFmpegTaskThread(QThread):
                 err_detail = "\n".join(last_lines[-8:])
                 self.finished_err.emit(f"Код {self.proc.returncode}:\n{err_detail}")
         except Exception as e:
-            self.finished_cancelled.emit() if self.is_cancelled else self.finished_err.emit(str(e))
+            self.finished_cancelled.emit() if self.is_cancelled else self.finished_err.emit(
+                str(e)
+            )
+
+
 # === [БЛОК 8: ДИАЛОГ ПРОГРЕСС-БАРА] ===
 class ProgressDialog(QDialog):
-    def __init__(self, parent, title_text: str, header_text: str, accent: str, dark_mode: bool):
+    def __init__(
+        self, parent, title_text: str, header_text: str, accent: str, dark_mode: bool
+    ):
         super().__init__(parent)
         self.setWindowTitle(title_text)
         self.setFixedSize(380, 145)
@@ -611,7 +825,9 @@ class ProgressDialog(QDialog):
 
         lay = QVBoxLayout(self)
         self.lbl_head = QLabel(header_text)
-        self.lbl_head.setStyleSheet(f"font-weight: bold; font-size: 13px; color: {accent};")
+        self.lbl_head.setStyleSheet(
+            f"font-weight: bold; font-size: 13px; color: {accent};"
+        )
         lay.addWidget(self.lbl_head)
 
         self.p_bar = QProgressBar()
@@ -629,13 +845,17 @@ class ProgressDialog(QDialog):
         bottom_row.addWidget(self.lbl_eta, 1)
 
         self.btn_cancel = QPushButton("Отмена")
-        self.btn_cancel.setStyleSheet("background-color: #B91C1C; color: #FFFFFF; padding: 5px 14px; border-radius: 3px; font-weight: bold;")
+        self.btn_cancel.setStyleSheet(
+            "background-color: #B91C1C; color: #FFFFFF; padding: 5px 14px; border-radius: 3px; font-weight: bold;"
+        )
         bottom_row.addWidget(self.btn_cancel)
         lay.addLayout(bottom_row)
 
     def update_state(self, pct: int, eta_text: str):
         self.p_bar.setValue(pct)
         self.lbl_eta.setText(eta_text)
+
+
 # === [БЛОК 9: ПОЛЗУНОК ПЕРЕМОТКИ С КЛИКОМ В ЛЮБОЕ МЕСТО И ПОКАДРОВОЙ ТОЧНОСТЬЮ] ===
 class ClickableSeekSlider(QSlider):
     seek_requested = Signal(float)
@@ -689,6 +909,8 @@ class ClickableSeekSlider(QSlider):
             event.accept()
         else:
             super().mouseReleaseEvent(event)
+
+
 # === [БЛОК 10: ВИДЖЕТ АУДИОВОЛНЫ] ===
 class AudioWaveformWidget(QWidget):
     zoom_wheel_requested = Signal(int, float)
@@ -733,17 +955,20 @@ class AudioWaveformWidget(QWidget):
             for x in range(w):
                 bh = int(heights.item(x) // 2)
                 if bh > 0:
-                    arr[cy - bh:cy + bh, x] = (r, g, b)
+                    arr[cy - bh : cy + bh, x] = (r, g, b)
                     ih = int(bh * 0.55)
-                    arr[cy - ih:cy + ih, x] = (r_hi, g_hi, b_hi)
+                    arr[cy - ih : cy + ih, x] = (r_hi, g_hi, b_hi)
         qimg = QImage(arr.data, w, h, w * 3, QImage.Format_RGB888)
         self.wave_pixmap = QPixmap.fromImage(qimg.copy())
         self.update()
-# === [БЛОК 11: ОТРИСОВКА И УПРАВЛЕНИЕ АУДИОВОЛНОЙ] ===
+
+    # === [БЛОК 11: ОТРИСОВКА И УПРАВЛЕНИЕ АУДИОВОЛНОЙ] ===
     def paintEvent(self, event):
         painter = QPainter(self)
         w, h = self.width(), self.height()
-        painter.fillRect(0, 0, w, h, QColor(13, 13, 13) if self.dark_mode else QColor(235, 235, 238))
+        painter.fillRect(
+            0, 0, w, h, QColor(13, 13, 13) if self.dark_mode else QColor(235, 235, 238)
+        )
         if self.wave_pixmap:
             painter.drawPixmap(0, 0, w, h, self.wave_pixmap)
         if self.duration > 0:
@@ -781,6 +1006,8 @@ class AudioWaveformWidget(QWidget):
         if self.duration > 0 and self.width() > 0:
             ratio = max(0.0, min(1.0, x / self.width()))
             self.on_seek(ratio * self.duration, immediate)
+
+
 # === [БЛОК 12: МУЛЬТИ-ОТРЕЗКОВЫЙ ПОЛЗУНОК ОБРЕЗКИ С КОНТЕКСТНЫМ МЕНЮ ПО ПКМ] ===
 class DualTrimSlider(QWidget):
     zoom_wheel_requested = Signal(int, float)
@@ -838,7 +1065,9 @@ class DualTrimSlider(QWidget):
         self.update()
 
     def get_sorted_segments(self) -> list:
-        valid = [(round(s, 3), round(e, 3)) for s, e in self.segments if (e - s) >= 0.02]
+        valid = [
+            (round(s, 3), round(e, 3)) for s, e in self.segments if (e - s) >= 0.02
+        ]
         valid.sort(key=lambda item: item[0])
         return valid
 
@@ -862,7 +1091,7 @@ class DualTrimSlider(QWidget):
             for idx, (seg_s, seg_e) in enumerate(self.segments):
                 x1 = pad + (seg_s / self.duration) * tw
                 x2 = pad + (seg_e / self.duration) * tw
-                is_active = (idx == self.active_seg_idx)
+                is_active = idx == self.active_seg_idx
 
                 # Полупрозрачная подложка зоны отрезка
                 fill_c = QColor(accent_q)
@@ -870,21 +1099,34 @@ class DualTrimSlider(QWidget):
                 p.fillRect(QRectF(x1, y - 10, max(2.0, x2 - x1), 20), fill_c)
 
                 # Линия отрезка
-                p.setPen(QPen(accent_q if is_active else dim_accent, 6, Qt.SolidLine, Qt.RoundCap))
+                p.setPen(
+                    QPen(
+                        accent_q if is_active else dim_accent,
+                        6,
+                        Qt.SolidLine,
+                        Qt.RoundCap,
+                    )
+                )
                 p.drawLine(int(x1), y, int(x2), y)
 
                 # Ручки начала и конца каждого отрезка
                 for hx in (x1, x2):
-                    p.setBrush(QColor(255, 255, 255) if is_active else QColor(225, 225, 230))
+                    p.setBrush(
+                        QColor(255, 255, 255) if is_active else QColor(225, 225, 230)
+                    )
                     p.setPen(QPen(accent_q if is_active else dim_accent, 2))
                     p.drawRoundedRect(QRectF(hx - 6, y - 12, 12, 24), 3, 3)
 
             xp = pad + (self.playhead_sec / self.duration) * tw
-            tick_c = QColor(255, 255, 255, 190) if self.dark_mode else QColor(20, 20, 20, 190)
+            tick_c = (
+                QColor(255, 255, 255, 190)
+                if self.dark_mode
+                else QColor(20, 20, 20, 190)
+            )
             p.setPen(QPen(tick_c, 2))
             p.drawLine(int(xp), y - 11, int(xp), y + 11)
 
-# === [БЛОК 13: СОБЫТИЯ МЫШИ, ПЕРЕМЕЩЕНИЕ ОТРЕЗКА ЦЕЛИКОМ И КОНТЕКСТНОЕ МЕНЮ (ПКМ)] ===
+    # === [БЛОК 13: СОБЫТИЯ МЫШИ, ПЕРЕМЕЩЕНИЕ ОТРЕЗКА ЦЕЛИКОМ И КОНТЕКСТНОЕ МЕНЮ (ПКМ)] ===
     def wheelEvent(self, event):
         if event.modifiers() & Qt.ControlModifier:
             delta = 1 if event.angleDelta().y() > 0 else -1
@@ -924,12 +1166,21 @@ class DualTrimSlider(QWidget):
                     seg[1] = max(seg[0] + min_gap, new_s - min_gap)
                     new_e = min(tail_e - min_gap, new_s + default_len)
                     self.segments.append([new_s, max(new_s + min_gap, new_e)])
-                    self.segments.append([min(tail_e - min_gap, new_e + min_gap), tail_e])
+                    self.segments.append(
+                        [min(tail_e - min_gap, new_e + min_gap), tail_e]
+                    )
                 else:
                     seg[1] = max(seg[0] + min_gap, new_s - min_gap)
                     self.segments.append([new_s, new_e])
                 self.segments.sort(key=lambda item: item[0])
-                self.active_seg_idx = next((i for i, x in enumerate(self.segments) if abs(x[0] - new_s) < 0.01), len(self.segments) - 1)
+                self.active_seg_idx = next(
+                    (
+                        i
+                        for i, x in enumerate(self.segments)
+                        if abs(x[0] - new_s) < 0.01
+                    ),
+                    len(self.segments) - 1,
+                )
                 self.update()
                 self.on_trim_changed("start", True)
                 return
@@ -950,7 +1201,10 @@ class DualTrimSlider(QWidget):
         new_e = min(right_bound, new_s + default_len)
         self.segments.append([new_s, new_e])
         self.segments.sort(key=lambda item: item[0])
-        self.active_seg_idx = next((i for i, x in enumerate(self.segments) if abs(x[0] - new_s) < 0.01), len(self.segments) - 1)
+        self.active_seg_idx = next(
+            (i for i, x in enumerate(self.segments) if abs(x[0] - new_s) < 0.01),
+            len(self.segments) - 1,
+        )
         self.update()
         self.on_trim_changed("start", True)
 
@@ -976,7 +1230,9 @@ class DualTrimSlider(QWidget):
             self._add_cut_at_sec(click_sec)
         elif act_del is not None and chosen == act_del:
             self.segments.pop(hit_idx)
-            self.active_seg_idx = max(0, min(self.active_seg_idx, len(self.segments) - 1))
+            self.active_seg_idx = max(
+                0, min(self.active_seg_idx, len(self.segments) - 1)
+            )
             self.update()
             self.on_trim_changed("start", True)
         elif act_reset is not None and chosen == act_reset:
@@ -1045,8 +1301,22 @@ class DualTrimSlider(QWidget):
         idx = self.active_seg_idx
         seg_s, seg_e = self.segments[idx]
 
-        prev_end = max([s[1] + min_gap for i, s in enumerate(self.segments) if i != idx and s[1] <= seg_s], default=0.0)
-        next_start = min([s[0] - min_gap for i, s in enumerate(self.segments) if i != idx and s[0] >= seg_e], default=self.duration)
+        prev_end = max(
+            [
+                s[1] + min_gap
+                for i, s in enumerate(self.segments)
+                if i != idx and s[1] <= seg_s
+            ],
+            default=0.0,
+        )
+        next_start = min(
+            [
+                s[0] - min_gap
+                for i, s in enumerate(self.segments)
+                if i != idx and s[0] >= seg_e
+            ],
+            default=self.duration,
+        )
 
         if self.active_handle == "move":
             seg_len = getattr(self, "_drag_seg_len_sec", seg_e - seg_s)
@@ -1100,9 +1370,20 @@ class DualTrimSlider(QWidget):
             self.active_handle = None
             self.on_trim_changed(h, True)
 
+
 # === [БЛОК 14: ОКНО МИКШЕРА ЗВУКОВЫХ ДОРОЖЕК] ===
 class AudioTracksDialog(QDialog):
-    def __init__(self, parent, track_count, track_dbs, output_groups, on_db_changed, on_groups_changed, accent, dark_mode):
+    def __init__(
+        self,
+        parent,
+        track_count,
+        track_dbs,
+        output_groups,
+        on_db_changed,
+        on_groups_changed,
+        accent,
+        dark_mode,
+    ):
         super().__init__(parent)
         self.setWindowTitle("Звуковые дорожки и микшер (дБ)")
         self.resize(680, 320)
@@ -1127,30 +1408,39 @@ class AudioTracksDialog(QDialog):
         self.setStyleSheet(f"background-color: {bg}; color: {fg}; font-family: Arial;")
         layout = QVBoxLayout(self)
 
-        lbl_top = QLabel("Шкала в децибелах: от -∞ dB (тишина) и -100 dB до +24.0 dB (по умолчанию 0.0 dB):")
+        lbl_top = QLabel(
+            "Шкала в децибелах: от -∞ dB (тишина) и -100 dB до +24.0 dB (по умолчанию 0.0 dB):"
+        )
         lbl_top.setStyleSheet(f"font-weight: bold; color: {accent}; font-size: 12px;")
         lbl_top.setWordWrap(True)
         layout.addWidget(lbl_top)
 
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
-        self.scroll.setStyleSheet(f"border: 1px solid #444444; background-color: {scr_bg};")
+        self.scroll.setStyleSheet(
+            f"border: 1px solid #444444; background-color: {scr_bg};"
+        )
         layout.addWidget(self.scroll, 1)
 
         btn_row = QHBoxLayout()
         btn_merge = QPushButton("🔗 Объединить выбранные в одну дорожку")
-        btn_merge.setStyleSheet(f"background-color: {accent}; color: {btn_fg}; font-weight: bold; padding: 7px 14px; border-radius: 4px;")
+        btn_merge.setStyleSheet(
+            f"background-color: {accent}; color: {btn_fg}; font-weight: bold; padding: 7px 14px; border-radius: 4px;"
+        )
         btn_merge.clicked.connect(self.merge_selected)
         btn_row.addWidget(btn_merge)
 
         btn_reset = QPushButton("Сбросить все объединения")
-        btn_reset.setStyleSheet(f"background-color: {btn_sec}; color: {fg}; padding: 7px 14px; border-radius: 4px;")
+        btn_reset.setStyleSheet(
+            f"background-color: {btn_sec}; color: {fg}; padding: 7px 14px; border-radius: 4px;"
+        )
         btn_reset.clicked.connect(self.reset_groups)
         btn_row.addWidget(btn_reset)
         layout.addLayout(btn_row)
 
         self._rebuild_cards()
-# === [БЛОК 15: ОТРИСОВКА КАРТОЧЕК ДОРОЖЕК В МИКШЕРЕ] ===
+
+    # === [БЛОК 15: ОТРИСОВКА КАРТОЧЕК ДОРОЖЕК В МИКШЕРЕ] ===
     def _rebuild_cards(self):
         self.checkboxes.clear()
         container = QWidget()
@@ -1165,9 +1455,13 @@ class AudioTracksDialog(QDialog):
             is_merged = len(grp) > 1
             card = QFrame()
             if is_merged:
-                card.setStyleSheet(f"QFrame {{ background-color: {card_merged_bg}; border: 2px solid {self.accent}; border-radius: 6px; }}")
+                card.setStyleSheet(
+                    f"QFrame {{ background-color: {card_merged_bg}; border: 2px solid {self.accent}; border-radius: 6px; }}"
+                )
             else:
-                card.setStyleSheet(f"QFrame {{ background-color: {card_bg}; border: 1px solid #555555; border-radius: 6px; }}")
+                card.setStyleSheet(
+                    f"QFrame {{ background-color: {card_bg}; border: 1px solid #555555; border-radius: 6px; }}"
+                )
 
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(10, 8, 10, 8)
@@ -1176,24 +1470,34 @@ class AudioTracksDialog(QDialog):
             header = QHBoxLayout()
             if is_merged:
                 title = QLabel(f"📦 Выходная дорожка {out_idx + 1}")
-                title.setStyleSheet(f"color: {self.accent}; font-weight: bold; font-size: 12px; border: none;")
+                title.setStyleSheet(
+                    f"color: {self.accent}; font-weight: bold; font-size: 12px; border: none;"
+                )
                 header.addWidget(title, 1)
 
                 btn_split = QPushButton("Разъединить")
-                btn_split.setStyleSheet("background-color: #7F1D1D; color: #FECACA; padding: 3px 8px; border-radius: 3px; font-size: 11px;")
-                btn_split.clicked.connect(lambda checked=False, g_i=out_idx: self.split_group(g_i))
+                btn_split.setStyleSheet(
+                    "background-color: #7F1D1D; color: #FECACA; padding: 3px 8px; border-radius: 3px; font-size: 11px;"
+                )
+                btn_split.clicked.connect(
+                    lambda checked=False, g_i=out_idx: self.split_group(g_i)
+                )
                 header.addWidget(btn_split)
             else:
                 title = QLabel(f"🎵 Выходная дорожка {out_idx + 1}")
-                title.setStyleSheet("color: #888888; font-weight: bold; font-size: 11px; border: none;")
+                title.setStyleSheet(
+                    "color: #888888; font-weight: bold; font-size: 11px; border: none;"
+                )
                 header.addWidget(title, 1)
 
             card_layout.addLayout(header)
-# === [БЛОК 16: ПОЛЗУНКИ ДБ ВНУТРИ КАРТОЧЕК ДОРОЖЕК] ===
+            # === [БЛОК 16: ПОЛЗУНКИ ДБ ВНУТРИ КАРТОЧЕК ДОРОЖЕК] ===
             for t_idx in grp:
                 row = QHBoxLayout()
                 cb = QCheckBox(f"Дорожка {t_idx + 1}")
-                cb.setStyleSheet(f"font-size: 12px; border: none; color: {fg}; font-weight: bold;")
+                cb.setStyleSheet(
+                    f"font-size: 12px; border: none; color: {fg}; font-weight: bold;"
+                )
                 self.checkboxes[t_idx] = cb
                 row.addWidget(cb, 0)
 
@@ -1201,7 +1505,11 @@ class AudioTracksDialog(QDialog):
                 lbl_val = QLabel(format_db_label(cur_raw))
                 lbl_val.setFixedWidth(68)
                 lbl_val.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                lbl_val.setStyleSheet("color: #22C55E; font-weight: bold; border: none;" if cur_raw > 0 else f"color: {self.accent}; font-weight: bold; border: none;")
+                lbl_val.setStyleSheet(
+                    "color: #22C55E; font-weight: bold; border: none;"
+                    if cur_raw > 0
+                    else f"color: {self.accent}; font-weight: bold; border: none;"
+                )
 
                 slider = QSlider(Qt.Horizontal)
                 slider.setRange(MUTE_DB_VAL, MAX_DB_VAL)
@@ -1211,7 +1519,9 @@ class AudioTracksDialog(QDialog):
 
                 btn_zero = QPushButton("0 dB")
                 btn_zero.setFixedWidth(42)
-                btn_zero.setStyleSheet("background-color: #333333; color: #EEEEEE; font-size: 10px; padding: 2px; border-radius: 3px;")
+                btn_zero.setStyleSheet(
+                    "background-color: #333333; color: #EEEEEE; font-size: 10px; padding: 2px; border-radius: 3px;"
+                )
 
                 def _make_handler(idx_t, lbl, sld):
                     def _changed(val):
@@ -1222,12 +1532,19 @@ class AudioTracksDialog(QDialog):
                             val = 0
                         self.track_dbs[idx_t] = val
                         lbl.setText(format_db_label(val))
-                        lbl.setStyleSheet("color: #22C55E; font-weight: bold; border: none;" if val > 0 else f"color: {self.accent}; font-weight: bold; border: none;")
+                        lbl.setStyleSheet(
+                            "color: #22C55E; font-weight: bold; border: none;"
+                            if val > 0
+                            else f"color: {self.accent}; font-weight: bold; border: none;"
+                        )
                         self.on_db_changed(idx_t, val)
+
                     return _changed
 
                 slider.valueChanged.connect(_make_handler(t_idx, lbl_val, slider))
-                btn_zero.clicked.connect(lambda checked=False, sld=slider: sld.setValue(0))
+                btn_zero.clicked.connect(
+                    lambda checked=False, sld=slider: sld.setValue(0)
+                )
 
                 row.addWidget(slider, 1)
                 row.addWidget(lbl_val)
@@ -1238,7 +1555,8 @@ class AudioTracksDialog(QDialog):
 
         vbox.addStretch(1)
         self.scroll.setWidget(container)
-# === [БЛОК 17: ОБЪЕДИНЕНИЕ И РАЗЪЕДИНЕНИЕ ДОРОЖЕК] ===
+
+    # === [БЛОК 17: ОБЪЕДИНЕНИЕ И РАЗЪЕДИНЕНИЕ ДОРОЖЕК] ===
     def split_group(self, group_index):
         grp = self.output_groups[group_index]
         new_groups = []
@@ -1256,7 +1574,11 @@ class AudioTracksDialog(QDialog):
     def merge_selected(self):
         selected = [idx for idx, cb in self.checkboxes.items() if cb.isChecked()]
         if len(selected) < 2:
-            QMessageBox.information(self, "Подсказка", "Отметьте галочками минимум 2 дорожки, чтобы объединить их.")
+            QMessageBox.information(
+                self,
+                "Подсказка",
+                "Отметьте галочками минимум 2 дорожки, чтобы объединить их.",
+            )
             return
         sel_set = set(selected)
         new_groups = []
@@ -1279,9 +1601,20 @@ class AudioTracksDialog(QDialog):
             self.output_groups.append([idx])
         self._rebuild_cards()
         self.on_groups_changed()
+
+
 # === [БЛОК 18: ОКНО НАСТРОЕК ЭКСПОРТА (ЧАСТЬ 1)] ===
 class ExportDialog(QDialog):
-    def __init__(self, parent, file_path: Path, is_video: bool, is_trimmed: bool, segments_count: int, accent: str, dark_mode: bool):
+    def __init__(
+        self,
+        parent,
+        file_path: Path,
+        is_video: bool,
+        is_trimmed: bool,
+        segments_count: int,
+        accent: str,
+        dark_mode: bool,
+    ):
         super().__init__(parent)
         self.setWindowTitle("Экспорт медиафайла")
         self.setFixedWidth(460)
@@ -1302,21 +1635,29 @@ class ExportDialog(QDialog):
         lay.addWidget(lbl_name)
 
         self.edit_name = QLineEdit(f"{file_path.stem}_обрезано")
-        self.edit_name.setStyleSheet(f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 6px 8px; border-radius: 4px; font-size: 13px;")
+        self.edit_name.setStyleSheet(
+            f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 6px 8px; border-radius: 4px; font-size: 13px;"
+        )
         lay.addWidget(self.edit_name)
 
         self.combo_multi = None
         if segments_count > 1:
             lbl_multi = QLabel(f"Режим нарезки ({segments_count} отмеченных отрезков):")
-            lbl_multi.setStyleSheet("font-weight: bold; color: #22C55E; font-size: 12px; margin-top: 4px;")
+            lbl_multi.setStyleSheet(
+                "font-weight: bold; color: #22C55E; font-size: 12px; margin-top: 4px;"
+            )
             lay.addWidget(lbl_multi)
 
             self.combo_multi = QComboBox()
-            self.combo_multi.addItems([
-                f"Склеить все {segments_count} отрезков в один файл",
-                f"Сохранить как {segments_count} отдельных файлов"
-            ])
-            self.combo_multi.setStyleSheet(f"background-color: {inp_bg}; color: {fg}; border: 1px solid #22C55E; padding: 6px; border-radius: 4px;")
+            self.combo_multi.addItems(
+                [
+                    f"Склеить все {segments_count} отрезков в один файл",
+                    f"Сохранить как {segments_count} отдельных файлов",
+                ]
+            )
+            self.combo_multi.setStyleSheet(
+                f"background-color: {inp_bg}; color: {fg}; border: 1px solid #22C55E; padding: 6px; border-radius: 4px;"
+            )
             lay.addWidget(self.combo_multi)
 
         row_fmt = QHBoxLayout()
@@ -1331,23 +1672,38 @@ class ExportDialog(QDialog):
         orig_ext = file_path.suffix.lower().lstrip(".")
         if orig_ext in formats:
             self.combo_fmt.setCurrentText(orig_ext)
-        self.combo_fmt.setStyleSheet(f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;")
+        self.combo_fmt.setStyleSheet(
+            f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;"
+        )
         col_f1.addWidget(self.combo_fmt)
         row_fmt.addLayout(col_f1)
-# === [БЛОК 19: ОКНО НАСТРОЕК ЭКСПОРТА (ЧАСТЬ 2)] ===
+        # === [БЛОК 19: ОКНО НАСТРОЕК ЭКСПОРТА (ЧАСТЬ 2)] ===
         self.combo_res = None
         if is_video:
             col_f2 = QVBoxLayout()
             lbl_res = QLabel("Разрешение:")
-            lbl_res.setStyleSheet(f"font-weight: bold; color: {accent}; font-size: 12px;")
+            lbl_res.setStyleSheet(
+                f"font-weight: bold; color: {accent}; font-size: 12px;"
+            )
             col_f2.addWidget(lbl_res)
 
             self.combo_res = QComboBox()
-            self.combo_res.addItems([
-                "Оригинал", "4320p (8K)", "2160p (4K)", "1440p (2K)",
-                "1080p", "720p", "480p", "240p", "144p"
-            ])
-            self.combo_res.setStyleSheet(f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;")
+            self.combo_res.addItems(
+                [
+                    "Оригинал",
+                    "4320p (8K)",
+                    "2160p (4K)",
+                    "1440p (2K)",
+                    "1080p",
+                    "720p",
+                    "480p",
+                    "240p",
+                    "144p",
+                ]
+            )
+            self.combo_res.setStyleSheet(
+                f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;"
+            )
             col_f2.addWidget(self.combo_res)
             row_fmt.addLayout(col_f2)
 
@@ -1365,39 +1721,57 @@ class ExportDialog(QDialog):
             c_fps.addWidget(QLabel("FPS:"))
             self.combo_fps = QComboBox()
             self.combo_fps.addItems(["Оригинал", "60 FPS", "30 FPS", "24 FPS"])
-            self.combo_fps.setStyleSheet(f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;")
+            self.combo_fps.setStyleSheet(
+                f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;"
+            )
             c_fps.addWidget(self.combo_fps)
             row_v1.addLayout(c_fps)
 
             c_vbr = QVBoxLayout()
             c_vbr.addWidget(QLabel("Битрейт видео:"))
             self.combo_vbitrate = QComboBox()
-            self.combo_vbitrate.addItems([
-                "Авто (по CRF)", "20 Мбит/с (20M)", "12 Мбит/с (12M)",
-                "8 Мбит/с (8M)", "5 Мбит/с (5M)", "2.5 Мбит/с (2500k)"
-            ])
-            self.combo_vbitrate.setStyleSheet(f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;")
+            self.combo_vbitrate.addItems(
+                [
+                    "Авто (по CRF)",
+                    "20 Мбит/с (20M)",
+                    "12 Мбит/с (12M)",
+                    "8 Мбит/с (8M)",
+                    "5 Мбит/с (5M)",
+                    "2.5 Мбит/с (2500k)",
+                ]
+            )
+            self.combo_vbitrate.setStyleSheet(
+                f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;"
+            )
             c_vbr.addWidget(self.combo_vbitrate)
             row_v1.addLayout(c_vbr)
             lay.addLayout(row_v1)
 
             lay.addWidget(QLabel("Качество сжатия:"))
             self.combo_crf = QComboBox()
-            self.combo_crf.addItems([
-                "Высокое качество (CRF 18)",
-                "Сбалансированное (CRF 23)",
-                "Малый размер файла (CRF 28)"
-            ])
-            self.combo_crf.setStyleSheet(f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;")
+            self.combo_crf.addItems(
+                [
+                    "Высокое качество (CRF 18)",
+                    "Сбалансированное (CRF 23)",
+                    "Малый размер файла (CRF 28)",
+                ]
+            )
+            self.combo_crf.setStyleSheet(
+                f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;"
+            )
             lay.addWidget(self.combo_crf)
 
             lay.addWidget(QLabel("Режим скорости экспорта:"))
             self.combo_speed = QComboBox()
-            self.combo_speed.addItems([
-                "Мгновенно без перекодирования (по ключевым кадрам, 1-2 сек)",
-                f"Полное перекодирование до доли секунды ({BEST_GPU_ENCODER})"
-            ])
-            self.combo_speed.setStyleSheet(f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;")
+            self.combo_speed.addItems(
+                [
+                    "Мгновенно без перекодирования (по ключевым кадрам, 1-2 сек)",
+                    f"Полное перекодирование до доли секунды ({BEST_GPU_ENCODER})",
+                ]
+            )
+            self.combo_speed.setStyleSheet(
+                f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;"
+            )
             lay.addWidget(self.combo_speed)
 
         row_aud = QHBoxLayout()
@@ -1406,8 +1780,12 @@ class ExportDialog(QDialog):
         lbl_abr.setStyleSheet(f"font-weight: bold; color: {accent}; font-size: 11px;")
         c_abr.addWidget(lbl_abr)
         self.combo_abitrate = QComboBox()
-        self.combo_abitrate.addItems(["192 kbps", "320 kbps", "256 kbps", "128 kbps", "96 kbps", "64 kbps"])
-        self.combo_abitrate.setStyleSheet(f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;")
+        self.combo_abitrate.addItems(
+            ["192 kbps", "320 kbps", "256 kbps", "128 kbps", "96 kbps", "64 kbps"]
+        )
+        self.combo_abitrate.setStyleSheet(
+            f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;"
+        )
         c_abr.addWidget(self.combo_abitrate)
         row_aud.addLayout(c_abr)
 
@@ -1417,7 +1795,9 @@ class ExportDialog(QDialog):
         c_ach.addWidget(lbl_ach)
         self.combo_achannels = QComboBox()
         self.combo_achannels.addItems(["Оригинал", "Стерео (2.0)", "Моно (1.0)"])
-        self.combo_achannels.setStyleSheet(f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;")
+        self.combo_achannels.setStyleSheet(
+            f"background-color: {inp_bg}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 4px;"
+        )
         c_ach.addWidget(self.combo_achannels)
         row_aud.addLayout(c_ach)
         lay.addLayout(row_aud)
@@ -1428,7 +1808,9 @@ class ExportDialog(QDialog):
             lay.addWidget(self.cb_no_audio)
 
         btn_export = QPushButton("Экспорт")
-        btn_export.setStyleSheet(f"background-color: {accent}; color: {btn_fg}; font-size: 14px; font-weight: bold; padding: 10px; border-radius: 5px; margin-top: 8px;")
+        btn_export.setStyleSheet(
+            f"background-color: {accent}; color: {btn_fg}; font-size: 14px; font-weight: bold; padding: 10px; border-radius: 5px; margin-top: 8px;"
+        )
         btn_export.clicked.connect(self._on_submit)
         lay.addWidget(btn_export)
 
@@ -1442,10 +1824,16 @@ class ExportDialog(QDialog):
         self.result_config = {
             "name": name,
             "format": self.combo_fmt.currentText(),
-            "resolution": self.combo_res.currentText() if self.combo_res else "Оригинал",
+            "resolution": self.combo_res.currentText()
+            if self.combo_res
+            else "Оригинал",
             "fps": self.combo_fps.currentText() if self.combo_fps else "Оригинал",
-            "crf": self.combo_crf.currentText() if self.combo_crf else "Высокое качество (CRF 18)",
-            "vbitrate": self.combo_vbitrate.currentText() if self.combo_vbitrate else "Авто (по CRF)",
+            "crf": self.combo_crf.currentText()
+            if self.combo_crf
+            else "Высокое качество (CRF 18)",
+            "vbitrate": self.combo_vbitrate.currentText()
+            if self.combo_vbitrate
+            else "Авто (по CRF)",
             "abitrate": abr_num.group(0) if abr_num else "192",
             "achannels": self.combo_achannels.currentText(),
             "speed_mode": self.combo_speed.currentText() if self.combo_speed else "",
@@ -1453,6 +1841,8 @@ class ExportDialog(QDialog):
             "no_audio": self.cb_no_audio.isChecked() if self.cb_no_audio else False,
         }
         self.accept()
+
+
 # === [БЛОК 20: ОКНО НАСТРОЕК ПРОГРАММЫ (ЧАСТЬ 1)] ===
 class SettingsDialog(QDialog):
     def __init__(self, parent, settings: dict, on_settings_applied):
@@ -1496,7 +1886,7 @@ class SettingsDialog(QDialog):
             grid.addWidget(btn, 1, col)
             self.color_buttons.append((btn, hex_c))
 
-# === [БЛОК 21: ОКНО НАСТРОЕК ПРОГРАММЫ (ЧАСТЬ 2)] ===
+        # === [БЛОК 21: ОКНО НАСТРОЕК ПРОГРАММЫ (ЧАСТЬ 2)] ===
         self.btn_custom_color = QPushButton("+")
         self.btn_custom_color.setFixedSize(46, 34)
         self.btn_custom_color.setStyleSheet(
@@ -1519,7 +1909,9 @@ class SettingsDialog(QDialog):
         dir_row.addWidget(btn_browse)
         self.lay.addLayout(dir_row)
 
-        self.cb_last_dir = QCheckBox("Открывать последнюю папку (при экспорте и открытии)")
+        self.cb_last_dir = QCheckBox(
+            "Открывать последнюю папку (при экспорте и открытии)"
+        )
         self.cb_last_dir.setChecked(self.settings.get("open_last_dir", True))
         self.cb_last_dir.stateChanged.connect(self._on_flags_changed)
         self.lay.addWidget(self.cb_last_dir)
@@ -1527,7 +1919,9 @@ class SettingsDialog(QDialog):
         self.lbl_beh_sec = QLabel("3. Поведение ползунков и предпросмотр кадров:")
         self.lay.addWidget(self.lbl_beh_sec)
 
-        self.cb_sync_trim = QCheckBox("Привязывать ползунок длительности к границам начала и конца обрезки")
+        self.cb_sync_trim = QCheckBox(
+            "Привязывать ползунок длительности к границам начала и конца обрезки"
+        )
         self.cb_sync_trim.setChecked(self.settings.get("sync_seek_with_trim", False))
         self.cb_sync_trim.stateChanged.connect(self._on_flags_changed)
         self.lay.addWidget(self.cb_sync_trim)
@@ -1537,18 +1931,32 @@ class SettingsDialog(QDialog):
         self.cb_scrub_audio.stateChanged.connect(self._on_flags_changed)
         self.lay.addWidget(self.cb_scrub_audio)
 
-        self.cb_preload_frames = QCheckBox("Предзагружать опорные кадры от начала до конца при открытии (с окном прогресса)")
-        self.cb_preload_frames.setChecked(self.settings.get("preload_frames_dialog", False))
+        self.cb_preload_frames = QCheckBox(
+            "Предзагружать опорные кадры от начала до конца при открытии (с окном прогресса)"
+        )
+        self.cb_preload_frames.setChecked(
+            self.settings.get("preload_frames_dialog", False)
+        )
         self.cb_preload_frames.stateChanged.connect(self._on_flags_changed)
         self.lay.addWidget(self.cb_preload_frames)
 
         scrub_res_row = QHBoxLayout()
         scrub_res_row.addWidget(QLabel("Разрешение опорных кадров:"))
         self.combo_scrub_res = QComboBox()
-        self.combo_scrub_res.addItems([
-            "Оригинал", "4320p (8K)", "2160p (4K)", "1440p (2K)",
-            "1080p", "720p", "480p", "360p", "240p", "144p"
-        ])
+        self.combo_scrub_res.addItems(
+            [
+                "Оригинал",
+                "4320p (8K)",
+                "2160p (4K)",
+                "1440p (2K)",
+                "1080p",
+                "720p",
+                "480p",
+                "360p",
+                "240p",
+                "144p",
+            ]
+        )
         cur_sr = self.settings.get("scrub_resolution", "360p")
         if self.combo_scrub_res.findText(cur_sr) >= 0:
             self.combo_scrub_res.setCurrentText(cur_sr)
@@ -1559,7 +1967,9 @@ class SettingsDialog(QDialog):
         self.lbl_dev_sec = QLabel("4. Интеграция и обновления:")
         self.lay.addWidget(self.lbl_dev_sec)
 
-        self.cb_ctx_menu = QCheckBox("Добавить «Медиа Обрезчик» в меню «Открыть с помощью»")
+        self.cb_ctx_menu = QCheckBox(
+            "Добавить «Медиа Обрезчик» в меню «Открыть с помощью»"
+        )
         self.cb_ctx_menu.setChecked(self.settings.get("context_menu", False))
         self.cb_ctx_menu.stateChanged.connect(self._on_flags_changed)
         self.lay.addWidget(self.cb_ctx_menu)
@@ -1580,7 +1990,8 @@ class SettingsDialog(QDialog):
         self.lay.addLayout(upd_row)
 
         self._refresh_dialog_style()
-# === [БЛОК 22: ОБРАБОТЧИКИ ОКНА НАСТРОЕК И ПРОВЕРКА ОБНОВЛЕНИЙ] ===
+
+    # === [БЛОК 22: ОБРАБОТЧИКИ ОКНА НАСТРОЕК И ПРОВЕРКА ОБНОВЛЕНИЙ] ===
     def _set_dark_mode(self, is_dark: bool):
         self.settings["dark_mode"] = is_dark
         set_windows_titlebar_theme(self, is_dark)
@@ -1591,13 +2002,19 @@ class SettingsDialog(QDialog):
         self._save_and_apply()
 
     def _pick_custom_color(self):
-        chosen = QColorDialog.getColor(QColor(self.settings.get("accent", "#FF9900")), self, "Выберите свой цвет темы")
+        chosen = QColorDialog.getColor(
+            QColor(self.settings.get("accent", "#FF9900")),
+            self,
+            "Выберите свой цвет темы",
+        )
         if chosen.isValid():
             self.settings["accent"] = chosen.name().upper()
             self._save_and_apply()
 
     def _browse_dir(self):
-        folder = QFileDialog.getExistingDirectory(self, "Выберите папку по умолчанию", self.edit_dir.text())
+        folder = QFileDialog.getExistingDirectory(
+            self, "Выберите папку по умолчанию", self.edit_dir.text()
+        )
         if folder:
             self.settings["default_dir"] = folder
             self.settings["last_export_dir"] = folder
@@ -1618,7 +2035,9 @@ class SettingsDialog(QDialog):
         set_console_visible(self.settings["show_console"])
         self._save_and_apply()
 
-        if old_res != new_res and hasattr(self.parent(), "_on_settings_scrub_res_changed"):
+        if old_res != new_res and hasattr(
+            self.parent(), "_on_settings_scrub_res_changed"
+        ):
             self.parent()._on_settings_scrub_res_changed(new_res)
 
     def _save_and_apply(self):
@@ -1659,10 +2078,15 @@ class SettingsDialog(QDialog):
             if not dl_ok:
                 QMessageBox.critical(self, "Ошибка обновления", dl_err)
                 return
-            QMessageBox.information(self, "Обновление установлено", f"Обрезчик обновлён до версии {remote_ver}!\nСейчас программа перезапустится.")
+            QMessageBox.information(
+                self,
+                "Обновление установлено",
+                f"Обрезчик обновлён до версии {remote_ver}!\nСейчас программа перезапустится.",
+            )
             subprocess.Popen([sys.executable, str(Path(__file__).resolve())])
             QApplication.quit()
-# === [БЛОК 23: ОФОРМЛЕНИЕ ОКНА НАСТРОЕК И ВИДЕОВИДЖЕТ С ПРЕДПРОСМОТРОМ] ===
+
+    # === [БЛОК 23: ОФОРМЛЕНИЕ ОКНА НАСТРОЕК И ВИДЕОВИДЖЕТ С ПРЕДПРОСМОТРОМ] ===
     def _refresh_dialog_style(self):
         is_dark = self.settings.get("dark_mode", True)
         accent = self.settings.get("accent", "#FF9900")
@@ -1672,10 +2096,19 @@ class SettingsDialog(QDialog):
         inp = "#121212" if is_dark else "#FFFFFF"
 
         self.setStyleSheet(f"background-color: {bg}; color: {fg}; font-family: Arial;")
-        for lbl in (self.lbl_theme_sec, self.lbl_dir_sec, self.lbl_beh_sec, self.lbl_dev_sec):
-            lbl.setStyleSheet(f"font-weight: bold; color: {accent}; font-size: 12px; margin-top: 4px;")
+        for lbl in (
+            self.lbl_theme_sec,
+            self.lbl_dir_sec,
+            self.lbl_beh_sec,
+            self.lbl_dev_sec,
+        ):
+            lbl.setStyleSheet(
+                f"font-weight: bold; color: {accent}; font-size: 12px; margin-top: 4px;"
+            )
 
-        self.edit_dir.setStyleSheet(f"background-color: {inp}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 3px;")
+        self.edit_dir.setStyleSheet(
+            f"background-color: {inp}; color: {fg}; border: 1px solid #555; padding: 5px; border-radius: 3px;"
+        )
 
         active_btn = f"background-color: {accent}; color: {btn_fg}; font-weight: bold; padding: 6px; border-radius: 4px;"
         inactive_btn = "background-color: #333333; color: #CCCCCC; padding: 6px; border-radius: 4px;"
@@ -1683,10 +2116,18 @@ class SettingsDialog(QDialog):
         self.btn_light.setStyleSheet(active_btn if not is_dark else inactive_btn)
 
         for btn, hex_c in self.color_buttons:
-            border = "3px solid #FFFFFF" if (hex_c.upper() == accent.upper() and is_dark) else (
-                "3px solid #111111" if hex_c.upper() == accent.upper() else "1px solid #555555"
+            border = (
+                "3px solid #FFFFFF"
+                if (hex_c.upper() == accent.upper() and is_dark)
+                else (
+                    "3px solid #111111"
+                    if hex_c.upper() == accent.upper()
+                    else "1px solid #555555"
+                )
             )
-            btn.setStyleSheet(f"background-color: {hex_c}; border: {border}; border-radius: 5px;")
+            btn.setStyleSheet(
+                f"background-color: {hex_c}; border: {border}; border-radius: 5px;"
+            )
 
 
 class ClickableVideoWidget(QGraphicsView):
@@ -1758,8 +2199,12 @@ class ClickableVideoWidget(QGraphicsView):
 
         if self.preview_pixmap is not None and not self.preview_pixmap.isNull():
             active_pix = self.preview_pixmap
-            smooth = (self.preview_target_height == 0)
-        elif self.preview_target_height > 0 and self._downscaled_frame_pix is not None and not self._downscaled_frame_pix.isNull():
+            smooth = self.preview_target_height == 0
+        elif (
+            self.preview_target_height > 0
+            and self._downscaled_frame_pix is not None
+            and not self._downscaled_frame_pix.isNull()
+        ):
             active_pix = self._downscaled_frame_pix
             smooth = False
 
@@ -1773,7 +2218,8 @@ class ClickableVideoWidget(QGraphicsView):
             x = (vw - scaled.width()) // 2
             y = (vh - scaled.height()) // 2
             p.drawPixmap(x, y, scaled)
-# === [БЛОК 24: СОБЫТИЯ ВИДЕОВИДЖЕТА И ИНИЦИАЛИЗАЦИЯ ГЛАВНОГО ОКНА] ===
+
+    # === [БЛОК 24: СОБЫТИЯ ВИДЕОВИДЖЕТА И ИНИЦИАЛИЗАЦИЯ ГЛАВНОГО ОКНА] ===
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._apply_video_viewport_scale()
@@ -1842,7 +2288,7 @@ class MediaTrimmerWindow(QMainWindow):
         self.gpu_scrub_worker.start()
         self.cpu_scrub_worker.start()
 
-# === [БЛОК 25: ТАЙМЕР ПЕРЕМОТКИ И ПОСТРОЕНИЕ ВЕРХНЕЙ ПАНЕЛИ] ===
+        # === [БЛОК 25: ТАЙМЕР ПЕРЕМОТКИ И ПОСТРОЕНИЕ ВЕРХНЕЙ ПАНЕЛИ] ===
         self._pending_seek_sec = None
         self._seek_throttle_timer = QTimer(self)
         self._seek_throttle_timer.setInterval(65)
@@ -1878,12 +2324,23 @@ class MediaTrimmerWindow(QMainWindow):
         top_layout.addWidget(self.btn_open)
 
         self.lbl_title = QLabel("Файл не выбран")
-        self.lbl_title.setStyleSheet("font-size: 13px; font-weight: bold; padding-left: 8px;")
+        self.lbl_title.setStyleSheet(
+            "font-size: 13px; font-weight: bold; padding-left: 8px;"
+        )
         top_layout.addWidget(self.lbl_title, 1)
 
         self.combo_preview_q = QComboBox()
-        self.combo_preview_q.addItems(["Предпросмотр: Оригинал", "Предпросмотр: 720p", "Предпросмотр: 480p", "Предпросмотр: 360p"])
-        self.combo_preview_q.currentIndexChanged.connect(self._on_preview_quality_changed)
+        self.combo_preview_q.addItems(
+            [
+                "Предпросмотр: Оригинал",
+                "Предпросмотр: 720p",
+                "Предпросмотр: 480p",
+                "Предпросмотр: 360p",
+            ]
+        )
+        self.combo_preview_q.currentIndexChanged.connect(
+            self._on_preview_quality_changed
+        )
         self.combo_preview_q.hide()
         top_layout.addWidget(self.combo_preview_q)
 
@@ -1898,9 +2355,11 @@ class MediaTrimmerWindow(QMainWindow):
 
         main_layout.addWidget(self.top_bar)
 
-# === [БЛОК 26: ОБЛАСТЬ ВИДЕО, АУДИОВОЛНЫ И ПАНЕЛЬ УПРАВЛЕНИЯ] ===
+        # === [БЛОК 26: ОБЛАСТЬ ВИДЕО, АУДИОВОЛНЫ И ПАНЕЛЬ УПРАВЛЕНИЯ] ===
         self.stack = QStackedWidget()
-        self.video_widget = ClickableVideoWidget(self.toggle_play, self.toggle_fullscreen)
+        self.video_widget = ClickableVideoWidget(
+            self.toggle_play, self.toggle_fullscreen
+        )
         self.video_widget.on_context_menu = self._open_video_context_menu
         self.video_widget.setMinimumHeight(140)
         self.player.setVideoOutput(self.video_widget.video_item)
@@ -1937,7 +2396,7 @@ class MediaTrimmerWindow(QMainWindow):
 
         self.lbl_trim_info = QLabel("Обрезка: 00:00.00 — 00:00.00")
         ctrl_layout.addWidget(self.lbl_trim_info)
-# === [БЛОК 27: ГРОМКОСТЬ, ПОЛНЫЙ ЭКРАН И ТАЙМЛАЙН ОБРЕЗКИ] ===
+        # === [БЛОК 27: ГРОМКОСТЬ, ПОЛНЫЙ ЭКРАН И ТАЙМЛАЙН ОБРЕЗКИ] ===
         self.lbl_vol_icon = QLabel("♪")
         ctrl_layout.addWidget(self.lbl_vol_icon)
 
@@ -1988,7 +2447,7 @@ class MediaTrimmerWindow(QMainWindow):
         self.timeline_scroll.setWidget(self.timeline_container)
         self.timeline_scroll.setFixedHeight(58)
         bot_layout.addWidget(self.timeline_scroll)
-# === [БЛОК 28: НИЖНЯЯ ПАНЕЛЬ (ПОДСКАЗКА ПКМ, ЭКСПОРТ ПО ЦЕНТРУ И ЗУМ СПРАВА)] ===
+        # === [БЛОК 28: НИЖНЯЯ ПАНЕЛЬ (ПОДСКАЗКА ПКМ, ЭКСПОРТ ПО ЦЕНТРУ И ЗУМ СПРАВА)] ===
         export_grid = QGridLayout()
         export_grid.setContentsMargins(0, 0, 0, 0)
         export_grid.setColumnStretch(0, 1)
@@ -1997,7 +2456,9 @@ class MediaTrimmerWindow(QMainWindow):
 
         hint_box = QHBoxLayout()
         self.lbl_cut_hint = QLabel("ПКМ по шкале — добавить или удалить обрезку")
-        self.lbl_cut_hint.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
+        self.lbl_cut_hint.setStyleSheet(
+            "font-size: 11px; color: #888888; background: transparent;"
+        )
         hint_box.addWidget(self.lbl_cut_hint)
         hint_box.addStretch(1)
         export_grid.addLayout(hint_box, 0, 0)
@@ -2030,7 +2491,7 @@ class MediaTrimmerWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+="), self, activated=lambda: self._step_zoom(25))
         QShortcut(QKeySequence("Ctrl+-"), self, activated=lambda: self._step_zoom(-25))
 
-# === [БЛОК 29: СОБЫТИЯ ОКНА, DRAG & DROP И УМНЫЙ ПЛАВНЫЙ ЗУМ] ===
+    # === [БЛОК 29: СОБЫТИЯ ОКНА, DRAG & DROP И УМНЫЙ ПЛАВНЫЙ ЗУМ] ===
     def showEvent(self, event):
         super().showEvent(event)
         QTimer.singleShot(0, self._update_zoomed_widths)
@@ -2087,7 +2548,9 @@ class MediaTrimmerWindow(QMainWindow):
     def _step_zoom(self, direction: int, cursor_ratio: float = None):
         cur = self.zoom_slider.value()
         step = self._calc_smooth_zoom_step(cur)
-        new_val = max(100, min(self.max_timeline_zoom, cur + (step if direction > 0 else -step)))
+        new_val = max(
+            100, min(self.max_timeline_zoom, cur + (step if direction > 0 else -step))
+        )
         self._zoom_cursor_ratio = cursor_ratio
         self.zoom_slider.setValue(new_val)
 
@@ -2095,7 +2558,8 @@ class MediaTrimmerWindow(QMainWindow):
         self.timeline_zoom = val
         self.lbl_zoom_pct.setText(f"{val}%")
         self._update_zoomed_widths()
-# === [БЛОК 30: ОБНОВЛЕНИЕ МАСШТАБА (ПОД КУРСОРОМ ИЛИ ПЛАВНО К ПОЛЗУНКУ) И ПРИМЕНЕНИЕ ТЕМЫ] ===
+
+    # === [БЛОК 30: ОБНОВЛЕНИЕ МАСШТАБА (ПОД КУРСОРОМ ИЛИ ПЛАВНО К ПОЛЗУНКУ) И ПРИМЕНЕНИЕ ТЕМЫ] ===
     def _tick_smooth_scroll(self):
         done = True
         if self._target_tl_scroll is not None:
@@ -2162,9 +2626,21 @@ class MediaTrimmerWindow(QMainWindow):
             new_sb_wv = int(round((c_ratio * new_wave_w) - cursor_screen_offset_wv))
             self.wave_scroll.horizontalScrollBar().setValue(max(0, new_sb_wv))
         else:
-            ratio = (self.player.position() / 1000.0) / self.duration if self.duration > 0 else 0.0
-            self._target_tl_scroll = max(0, min(max(0, new_tl_w - vp_w), int(ratio * new_tl_w) - vp_w // 2))
-            self._target_wave_scroll = max(0, min(max(0, new_wave_w - base_wave_w), int(ratio * new_wave_w) - base_wave_w // 2))
+            ratio = (
+                (self.player.position() / 1000.0) / self.duration
+                if self.duration > 0
+                else 0.0
+            )
+            self._target_tl_scroll = max(
+                0, min(max(0, new_tl_w - vp_w), int(ratio * new_tl_w) - vp_w // 2)
+            )
+            self._target_wave_scroll = max(
+                0,
+                min(
+                    max(0, new_wave_w - base_wave_w),
+                    int(ratio * new_wave_w) - base_wave_w // 2,
+                ),
+            )
             if not self._smooth_scroll_timer.isActive():
                 self._smooth_scroll_timer.start()
 
@@ -2181,25 +2657,59 @@ class MediaTrimmerWindow(QMainWindow):
         btn_sec_bg = "#333333" if is_dark else "#D4D4D8"
         time_bg = "#111111" if is_dark else "#FFFFFF"
 
-        self.setStyleSheet(f"QMainWindow, QWidget {{ background-color: {win_bg}; color: {fg}; font-family: Arial; }}")
+        self.setStyleSheet(
+            f"QMainWindow, QWidget {{ background-color: {win_bg}; color: {fg}; font-family: Arial; }}"
+        )
         self.top_bar.setStyleSheet(f"background-color: {panel_bg}; border-radius: 4px;")
-        self.ctrl_bar.setStyleSheet(f"background-color: {panel_bg}; border-radius: 4px;")
-        self.video_widget.setStyleSheet("background-color: #0D0D0D; border: none;" if is_dark else "background-color: #E4E4E7; border: none;")
-# === [БЛОК 31: СТИЛИ КНОПОК И ПОЛЗУНКОВ ГЛАВНОГО ОКНА] ===
-        self.btn_open.setStyleSheet(f"background-color: {accent}; color: {btn_fg}; font-weight: bold; padding: 6px 14px; border-radius: 3px;")
-        self.btn_play.setStyleSheet(f"background-color: {accent}; color: {btn_fg}; font-family: 'Segoe UI Symbol'; font-size: 15px; font-weight: bold; padding: 5px; border-radius: 3px;")
-        self.btn_export.setStyleSheet(f"background-color: {accent}; color: {btn_fg}; font-size: 13px; font-weight: bold; padding: 8px 32px; border-radius: 4px;")
-        self.btn_tracks.setStyleSheet(f"background-color: {btn_sec_bg}; color: {accent}; font-weight: bold; padding: 6px 12px; border-radius: 3px;")
-        self.combo_preview_q.setStyleSheet(f"background-color: {btn_sec_bg}; color: {fg}; padding: 5px; border-radius: 3px;")
-        self.btn_settings.setStyleSheet(f"background-color: {btn_sec_bg}; color: {fg}; font-weight: bold; padding: 6px 12px; border-radius: 3px;")
-        self.btn_full.setStyleSheet(f"background-color: {btn_sec_bg}; color: {fg}; font-size: 14px; font-weight: bold; padding: 4px; border-radius: 3px;")
+        self.ctrl_bar.setStyleSheet(
+            f"background-color: {panel_bg}; border-radius: 4px;"
+        )
+        self.video_widget.setStyleSheet(
+            "background-color: #0D0D0D; border: none;"
+            if is_dark
+            else "background-color: #E4E4E7; border: none;"
+        )
+        # === [БЛОК 31: СТИЛИ КНОПОК И ПОЛЗУНКОВ ГЛАВНОГО ОКНА] ===
+        self.btn_open.setStyleSheet(
+            f"background-color: {accent}; color: {btn_fg}; font-weight: bold; padding: 6px 14px; border-radius: 3px;"
+        )
+        self.btn_play.setStyleSheet(
+            f"background-color: {accent}; color: {btn_fg}; font-family: 'Segoe UI Symbol'; font-size: 15px; font-weight: bold; padding: 5px; border-radius: 3px;"
+        )
+        self.btn_export.setStyleSheet(
+            f"background-color: {accent}; color: {btn_fg}; font-size: 13px; font-weight: bold; padding: 8px 32px; border-radius: 4px;"
+        )
+        self.btn_tracks.setStyleSheet(
+            f"background-color: {btn_sec_bg}; color: {accent}; font-weight: bold; padding: 6px 12px; border-radius: 3px;"
+        )
+        self.combo_preview_q.setStyleSheet(
+            f"background-color: {btn_sec_bg}; color: {fg}; padding: 5px; border-radius: 3px;"
+        )
+        self.btn_settings.setStyleSheet(
+            f"background-color: {btn_sec_bg}; color: {fg}; font-weight: bold; padding: 6px 12px; border-radius: 3px;"
+        )
+        self.btn_full.setStyleSheet(
+            f"background-color: {btn_sec_bg}; color: {fg}; font-size: 14px; font-weight: bold; padding: 4px; border-radius: 3px;"
+        )
 
-        self.lbl_time.setStyleSheet(f"background-color: {time_bg}; color: {accent}; font-family: Consolas; font-size: 14px; font-weight: bold; padding: 5px 12px; border-radius: 3px;")
-        self.lbl_trim_info.setStyleSheet(f"color: {sub_fg}; font-size: 11px; padding: 0 10px; background: transparent;")
-        self.lbl_vol_icon.setStyleSheet(f"color: {accent}; font-size: 14px; font-weight: bold; background: transparent;")
-        self.lbl_master_pct.setStyleSheet(f"color: {accent}; font-weight: bold; font-size: 11px; background: transparent;")
-        self.lbl_zoom_icon.setStyleSheet(f"color: {accent}; font-size: 12px; background: transparent;")
-        self.lbl_zoom_pct.setStyleSheet(f"color: {accent}; font-weight: bold; font-size: 11px; background: transparent;")
+        self.lbl_time.setStyleSheet(
+            f"background-color: {time_bg}; color: {accent}; font-family: Consolas; font-size: 14px; font-weight: bold; padding: 5px 12px; border-radius: 3px;"
+        )
+        self.lbl_trim_info.setStyleSheet(
+            f"color: {sub_fg}; font-size: 11px; padding: 0 10px; background: transparent;"
+        )
+        self.lbl_vol_icon.setStyleSheet(
+            f"color: {accent}; font-size: 14px; font-weight: bold; background: transparent;"
+        )
+        self.lbl_master_pct.setStyleSheet(
+            f"color: {accent}; font-weight: bold; font-size: 11px; background: transparent;"
+        )
+        self.lbl_zoom_icon.setStyleSheet(
+            f"color: {accent}; font-size: 12px; background: transparent;"
+        )
+        self.lbl_zoom_pct.setStyleSheet(
+            f"color: {accent}; font-weight: bold; font-size: 11px; background: transparent;"
+        )
 
         groove_bg = "#333333" if is_dark else "#CBD5E1"
         slider_css = f"""
@@ -2216,7 +2726,7 @@ class MediaTrimmerWindow(QMainWindow):
         self.trim_slider.sync_seek = self.settings.get("sync_seek_with_trim", False)
         self.trim_slider.update()
 
-# === [БЛОК 32: ВРЕМЯ ДО СОТЫХ СЕКУНДЫ, ГОРЯЧИЕ КЛАВИШИ, ПОЛНЫЙ ЭКРАН И ДИАЛОГИ] ===
+    # === [БЛОК 32: ВРЕМЯ ДО СОТЫХ СЕКУНДЫ, ГОРЯЧИЕ КЛАВИШИ, ПОЛНЫЙ ЭКРАН И ДИАЛОГИ] ===
     def _format_time(self, sec):
         sec = max(0.0, sec)
         total_secs = int(sec)
@@ -2228,18 +2738,25 @@ class MediaTrimmerWindow(QMainWindow):
         return f"{mins:02d}:{rem:05.2f}"
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_F11:
-            self.toggle_fullscreen()
-        elif event.key() == Qt.Key_Escape and self.isFullScreen():
+        if (
+            event.key() == Qt.Key_F11
+            or event.key() == Qt.Key_Escape
+            and self.isFullScreen()
+        ):
             self.toggle_fullscreen()
         elif event.key() == Qt.Key_Space:
             self.toggle_play()
         elif event.key() == Qt.Key_Left:
             step = 1.0 if (event.modifiers() & Qt.ShiftModifier) else 0.01
-            self.seek_to(max(0.0, round((self.player.position() / 1000.0) - step, 2)), True)
+            self.seek_to(
+                max(0.0, round((self.player.position() / 1000.0) - step, 2)), True
+            )
         elif event.key() == Qt.Key_Right:
             step = 1.0 if (event.modifiers() & Qt.ShiftModifier) else 0.01
-            self.seek_to(min(self.duration, round((self.player.position() / 1000.0) + step, 2)), True)
+            self.seek_to(
+                min(self.duration, round((self.player.position() / 1000.0) + step, 2)),
+                True,
+            )
 
     def toggle_fullscreen(self):
         if not self.is_video:
@@ -2263,16 +2780,24 @@ class MediaTrimmerWindow(QMainWindow):
 
     def open_tracks_dialog(self):
         if self.track_count <= 0:
-            QMessageBox.information(self, "Дорожки", "В этом файле не найдено звуковых дорожек.")
+            QMessageBox.information(
+                self, "Дорожки", "В этом файле не найдено звуковых дорожек."
+            )
             return
         self._ensure_track_boost_layers()
         dlg = AudioTracksDialog(
-            self, self.track_count, self.track_dbs, self.output_groups,
-            self._on_single_track_db, self._update_tracks_btn_label,
-            self.settings.get("accent", "#FF9900"), self.settings.get("dark_mode", True)
+            self,
+            self.track_count,
+            self.track_dbs,
+            self.output_groups,
+            self._on_single_track_db,
+            self._update_tracks_btn_label,
+            self.settings.get("accent", "#FF9900"),
+            self.settings.get("dark_mode", True),
         )
         dlg.exec()
-# === [БЛОК 33: ПОТОКОВЫЙ МИКШЕР И ОЧИСТКА КЭША] ===
+
+    # === [БЛОК 33: ПОТОКОВЫЙ МИКШЕР И ОЧИСТКА КЭША] ===
     def _ensure_track_boost_layers(self):
         if self.track_boost_layers or not self.is_video or self.track_count <= 0:
             return
@@ -2282,7 +2807,9 @@ class MediaTrimmerWindow(QMainWindow):
         fmt.setSampleFormat(QAudioFormat.Int16)
 
         for idx in range(self.track_count):
-            stream = GainAudioStream(str(self.file_path), idx, sample_rate=32000, channels=2)
+            stream = GainAudioStream(
+                str(self.file_path), idx, sample_rate=32000, channels=2
+            )
             sink = QAudioSink(fmt, self)
             sink.setVolume(self.master_volume)
             self.track_boost_layers.append((sink, stream))
@@ -2321,7 +2848,8 @@ class MediaTrimmerWindow(QMainWindow):
             sink.deleteLater()
             stream.deleteLater()
         self.track_boost_layers.clear()
-# === [БЛОК 34: УПРАВЛЕНИЕ ГРОМКОСТЬЮ И ЧТЕНИЕ ИНФОРМАЦИИ О МЕДИА] ===
+
+    # === [БЛОК 34: УПРАВЛЕНИЕ ГРОМКОСТЬЮ И ЧТЕНИЕ ИНФОРМАЦИИ О МЕДИА] ===
     def _raw_db_to_real_gain(self, raw_val: int) -> float:
         if raw_val <= MUTE_DB_VAL:
             return 0.0
@@ -2356,7 +2884,10 @@ class MediaTrimmerWindow(QMainWindow):
     def _on_single_track_db(self, t_idx, raw_val):
         self.track_dbs[t_idx] = raw_val
         self._apply_all_volumes()
-        if self.player.playbackState() == QMediaPlayer.PlayingState and self.track_boost_layers:
+        if (
+            self.player.playbackState() == QMediaPlayer.PlayingState
+            and self.track_boost_layers
+        ):
             pos_sec = self.player.position() / 1000.0
             for sink, stream in self.track_boost_layers:
                 if sink.state() != QAudio.State.ActiveState:
@@ -2374,12 +2905,18 @@ class MediaTrimmerWindow(QMainWindow):
     def _probe_media_info(self, path_str):
         cmd = [FFMPEG_BIN, "-i", path_str]
         flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
+        res = subprocess.run(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags
+        )
         info = res.stderr.decode("utf-8", errors="ignore")
         dur = 0.0
         dur_m = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", info)
         if dur_m:
-            dur = int(dur_m.group(1)) * 3600 + int(dur_m.group(2)) * 60 + float(dur_m.group(3))
+            dur = (
+                int(dur_m.group(1)) * 3600
+                + int(dur_m.group(2)) * 60
+                + float(dur_m.group(3))
+            )
 
         fps = 30.0
         fps_m = re.search(r"Video:.*?(\d+(?:\.\d+)?)\s*fps", info)
@@ -2401,12 +2938,17 @@ class MediaTrimmerWindow(QMainWindow):
 
         audio_cnt = sum(1 for line in info.splitlines() if "Audio:" in line)
         return dur, audio_cnt, fps, src_w, src_h
-# === [БЛОК 35: ЗАПУСК FFMPEG С ПРОГРЕССОМ И ПАПКИ ПО УМОЛЧАНИЮ] ===
-    def _run_ffmpeg_with_progress(self, cmd, total_dur, title, header, cleanup_paths=None, silent_err=False) -> bool:
+
+    # === [БЛОК 35: ЗАПУСК FFMPEG С ПРОГРЕССОМ И ПАПКИ ПО УМОЛЧАНИЮ] ===
+    def _run_ffmpeg_with_progress(
+        self, cmd, total_dur, title, header, cleanup_paths=None, silent_err=False
+    ) -> bool:
         dlg = ProgressDialog(
-            self, title, header,
+            self,
+            title,
+            header,
             self.settings.get("accent", "#FF9900"),
-            self.settings.get("dark_mode", True)
+            self.settings.get("dark_mode", True),
         )
         thread = FFmpegTaskThread(cmd, total_dur)
         self.worker_thread = thread
@@ -2447,16 +2989,26 @@ class MediaTrimmerWindow(QMainWindow):
                 return str(last_p)
         def_p = Path(self.settings.get("default_dir", str(SCRIPT_DIR)))
         return str(def_p) if def_p.exists() else str(SCRIPT_DIR)
-# === [БЛОК 36.1: ОТКРЫТИЕ ФАЙЛОВ И СИНХРОНИЗАЦИЯ НАСТРОЕК] ===
+
+    # === [БЛОК 36.1: ОТКРЫТИЕ ФАЙЛОВ И СИНХРОНИЗАЦИЯ НАСТРОЕК] ===
     def load_file(self):
-        path_str, _ = QFileDialog.getOpenFileName(self, "Выберите аудио или видео", self._get_target_dir())
+        path_str, _ = QFileDialog.getOpenFileName(
+            self, "Выберите аудио или видео", self._get_target_dir()
+        )
         if path_str:
             self._open_media_path(path_str)
 
     def _get_preview_height(self) -> int:
         res_map = {
-            "4320p (8K)": 4320, "2160p (4K)": 2160, "1440p (2K)": 1440,
-            "1080p": 1080, "720p": 720, "480p": 480, "360p": 360, "240p": 240, "144p": 144
+            "4320p (8K)": 4320,
+            "2160p (4K)": 2160,
+            "1440p (2K)": 1440,
+            "1080p": 1080,
+            "720p": 720,
+            "480p": 480,
+            "360p": 360,
+            "240p": 240,
+            "144p": 144,
         }
         cfg_sr = self.settings.get("scrub_resolution", "360p")
         if "Оригинал" in cfg_sr:
@@ -2466,7 +3018,9 @@ class MediaTrimmerWindow(QMainWindow):
     def _on_settings_scrub_res_changed(self, _new_res: str):
         if not self.is_video or not self.file_path:
             return
-        self._restart_scrub_grid(with_modal_progress=self.settings.get("preload_frames_dialog", False))
+        self._restart_scrub_grid(
+            with_modal_progress=self.settings.get("preload_frames_dialog", False)
+        )
         cur_sec = self.trim_slider.playhead_sec
         if self.player.playbackState() != QMediaPlayer.PlayingState:
             self._show_nearest_cached_frame(cur_sec, request_dense_strip=True)
@@ -2488,7 +3042,9 @@ class MediaTrimmerWindow(QMainWindow):
 
         ext = candidate.suffix.lower().lstrip(".")
         is_vid = ext in VIDEO_EXTS
-        probed_dur, probed_audio_cnt, probed_fps, probed_w, probed_h = self._probe_media_info(str(candidate))
+        probed_dur, probed_audio_cnt, probed_fps, probed_w, probed_h = (
+            self._probe_media_info(str(candidate))
+        )
 
         self.file_path = candidate
         self.duration = probed_dur
@@ -2519,19 +3075,35 @@ class MediaTrimmerWindow(QMainWindow):
                 self._ensure_track_boost_layers()
 
             self._recalculate_dynamic_zoom_limit()
-            self._restart_scrub_grid(with_modal_progress=self.settings.get("preload_frames_dialog", False))
+            self._restart_scrub_grid(
+                with_modal_progress=self.settings.get("preload_frames_dialog", False)
+            )
         else:
             self.gpu_scrub_worker.configure("", self.load_counter, 0)
             self.cpu_scrub_worker.configure("", self.load_counter, 0)
             wav_path = self.cache_dir / f"wave_{self.load_counter}.wav"
             cmd = [
-                FFMPEG_BIN, "-y", "-vn", "-sn", "-dn", "-threads", "0",
-                "-i", str(candidate), "-ac", "1", "-ar", "8000", str(wav_path)
+                FFMPEG_BIN,
+                "-y",
+                "-vn",
+                "-sn",
+                "-dn",
+                "-threads",
+                "0",
+                "-i",
+                str(candidate),
+                "-ac",
+                "1",
+                "-ar",
+                "8000",
+                str(wav_path),
             ]
             ok = self._run_ffmpeg_with_progress(
-                cmd, probed_dur, "Загрузка аудио",
+                cmd,
+                probed_dur,
+                "Загрузка аудио",
                 f"Построение волны: {candidate.name}",
-                cleanup_paths=[wav_path]
+                cleanup_paths=[wav_path],
             )
             if not ok:
                 return
@@ -2562,7 +3134,8 @@ class MediaTrimmerWindow(QMainWindow):
         self.player.pause()
         self.player.setPosition(0)
         self._update_zoomed_widths()
-# === [БЛОК 36.2: ЗАПУСК ОПОРНЫХ КАДРОВ И ОКНО ПРОГРЕССА С ETA] ===
+
+    # === [БЛОК 36.2: ЗАПУСК ОПОРНЫХ КАДРОВ И ОКНО ПРОГРЕССА С ETA] ===
     def _restart_scrub_grid(self, with_modal_progress: bool = False):
         if not self.is_video or not self.file_path or self.duration <= 0:
             return
@@ -2570,18 +3143,25 @@ class MediaTrimmerWindow(QMainWindow):
         h = self._get_preview_height()
         sw = getattr(self, "video_src_w", 1920)
         sh = getattr(self, "video_src_h", 1080)
-        self.gpu_scrub_worker.configure(str(self.file_path), self.load_counter, h, self.video_fps, sw, sh)
-        self.cpu_scrub_worker.configure(str(self.file_path), self.load_counter, h, self.video_fps, sw, sh)
+        self.gpu_scrub_worker.configure(
+            str(self.file_path), self.load_counter, h, self.video_fps, sw, sh
+        )
+        self.cpu_scrub_worker.configure(
+            str(self.file_path), self.load_counter, h, self.video_fps, sw, sh
+        )
 
-        self.gpu_scrub_worker.request_frames([int(round(self._scrub_anchor_sec * 1000))], high_priority=True)
+        self.gpu_scrub_worker.request_frames(
+            [int(round(self._scrub_anchor_sec * 1000))], high_priority=True
+        )
 
         if with_modal_progress:
             res_name = self.settings.get("scrub_resolution", "360p")
             dlg = ProgressDialog(
-                self, "Быстрая индексация кадров",
+                self,
+                "Быстрая индексация кадров",
                 f"Загрузка опорных кадров ({res_name})...",
                 self.settings.get("accent", "#FF9900"),
-                self.settings.get("dark_mode", True)
+                self.settings.get("dark_mode", True),
             )
             state = {"cancelled": False, "start_t": time.time()}
 
@@ -2602,14 +3182,20 @@ class MediaTrimmerWindow(QMainWindow):
 
             def _on_cancel():
                 state["cancelled"] = True
-                self.gpu_scrub_worker.configure(str(self.file_path), self.load_counter, h, self.video_fps, sw, sh)
-                self.cpu_scrub_worker.configure(str(self.file_path), self.load_counter, h, self.video_fps, sw, sh)
+                self.gpu_scrub_worker.configure(
+                    str(self.file_path), self.load_counter, h, self.video_fps, sw, sh
+                )
+                self.cpu_scrub_worker.configure(
+                    str(self.file_path), self.load_counter, h, self.video_fps, sw, sh
+                )
                 dlg.reject()
 
             self.cpu_scrub_worker.batch_progress.connect(_on_prog)
             dlg.btn_cancel.clicked.connect(_on_cancel)
 
-            self.cpu_scrub_worker.request_tiered_grid(self.duration, self._scrub_anchor_sec, track_initial=True)
+            self.cpu_scrub_worker.request_tiered_grid(
+                self.duration, self._scrub_anchor_sec, track_initial=True
+            )
             dlg.exec()
 
             try:
@@ -2617,8 +3203,11 @@ class MediaTrimmerWindow(QMainWindow):
             except Exception:
                 pass
         else:
-            self.cpu_scrub_worker.request_tiered_grid(self.duration, self._scrub_anchor_sec, track_initial=False)
-# === [БЛОК 36.3: НАКОПИТЕЛЬНЫЙ КЭШ КАДРОВ, КОНТЕКСТНОЕ МЕНЮ ВИДЕО (ПКМ) И ПРЕДПРОСМОТР] ===
+            self.cpu_scrub_worker.request_tiered_grid(
+                self.duration, self._scrub_anchor_sec, track_initial=False
+            )
+
+    # === [БЛОК 36.3: НАКОПИТЕЛЬНЫЙ КЭШ КАДРОВ, КОНТЕКСТНОЕ МЕНЮ ВИДЕО (ПКМ) И ПРЕДПРОСМОТР] ===
     def _on_scrub_frame_ready(self, load_id: int, sec_millis: int, qimg: QImage):
         if load_id != self.load_counter:
             return
@@ -2628,7 +3217,10 @@ class MediaTrimmerWindow(QMainWindow):
             self.frame_cache.pop(oldest_key, None)
         self.frame_cache[sec_millis] = pix
 
-        if self._last_scrub_centis >= 0 and abs(sec_millis - self._last_scrub_centis) <= 350:
+        if (
+            self._last_scrub_centis >= 0
+            and abs(sec_millis - self._last_scrub_centis) <= 350
+        ):
             if self.player.playbackState() != QMediaPlayer.PlayingState:
                 self.video_widget.set_scrub_frame(pix)
 
@@ -2654,7 +3246,9 @@ class MediaTrimmerWindow(QMainWindow):
                 if 0.0 <= cand_sec <= self.duration:
                     cand_ms = int(round(cand_sec * 1000))
                     if all(abs(k - cand_ms) > 2500 for k in self.frame_cache.keys()):
-                        self.gpu_scrub_worker.request_frames([cand_ms], high_priority=False)
+                        self.gpu_scrub_worker.request_frames(
+                            [cand_ms], high_priority=False
+                        )
         elif nearest_diff > 1500:
             self.gpu_scrub_worker.request_frames([target_ms], high_priority=False)
 
@@ -2662,10 +3256,28 @@ class MediaTrimmerWindow(QMainWindow):
         if not self.is_video or not self.file_path:
             return QImage()
         cur_sec = self.trim_slider.playhead_sec
-        tmp_png = self.cache_dir / f"snap_tmp_{self.load_counter}_{int(cur_sec * 1000)}.png"
+        tmp_png = (
+            self.cache_dir / f"snap_tmp_{self.load_counter}_{int(cur_sec * 1000)}.png"
+        )
         flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
-        cmd = [FFMPEG_BIN, "-y", "-ss", f"{cur_sec:.3f}", "-i", str(self.file_path), "-frames:v", "1", str(tmp_png)]
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags, timeout=4)
+        cmd = [
+            FFMPEG_BIN,
+            "-y",
+            "-ss",
+            f"{cur_sec:.3f}",
+            "-i",
+            str(self.file_path),
+            "-frames:v",
+            "1",
+            str(tmp_png),
+        ]
+        subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=flags,
+            timeout=4,
+        )
         img = QImage(str(tmp_png)) if tmp_png.exists() else QImage()
         tmp_png.unlink(missing_ok=True)
         return img
@@ -2674,33 +3286,90 @@ class MediaTrimmerWindow(QMainWindow):
         img = self._extract_current_fullres_qimage()
         if not img.isNull():
             QApplication.clipboard().setImage(img)
-            self.lbl_title.setText(f"📋 Кадр скопирован в буфер обмена ({self.file_path.name})")
-            QTimer.singleShot(2500, lambda: self.lbl_title.setText(self.file_path.name if self.file_path else "Файл не выбран"))
+            self.lbl_title.setText(
+                f"📋 Кадр скопирован в буфер обмена ({self.file_path.name})"
+            )
+            QTimer.singleShot(
+                2500,
+                lambda: self.lbl_title.setText(
+                    self.file_path.name if self.file_path else "Файл не выбран"
+                ),
+            )
 
     def quick_save_frame_to_folder(self):
         if not self.is_video or not self.file_path:
             return
         cur_sec = self.trim_slider.playhead_sec
-        out_png = Path(self._get_target_dir()) / f"{self.file_path.stem}_{cur_sec:.2f}s.png"
+        out_png = (
+            Path(self._get_target_dir()) / f"{self.file_path.stem}_{cur_sec:.2f}s.png"
+        )
         flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
-        cmd = [FFMPEG_BIN, "-y", "-ss", f"{cur_sec:.3f}", "-i", str(self.file_path), "-frames:v", "1", str(out_png)]
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags, timeout=4)
+        cmd = [
+            FFMPEG_BIN,
+            "-y",
+            "-ss",
+            f"{cur_sec:.3f}",
+            "-i",
+            str(self.file_path),
+            "-frames:v",
+            "1",
+            str(out_png),
+        ]
+        subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=flags,
+            timeout=4,
+        )
         if out_png.exists():
             self.lbl_title.setText(f"⚡ Скриншот сохранён: {out_png.name}")
-            QTimer.singleShot(2500, lambda: self.lbl_title.setText(self.file_path.name if self.file_path else "Файл не выбран"))
+            QTimer.singleShot(
+                2500,
+                lambda: self.lbl_title.setText(
+                    self.file_path.name if self.file_path else "Файл не выбран"
+                ),
+            )
 
     def save_frame_screenshot(self):
         if not self.is_video or not self.file_path:
             return
         cur_sec = self.trim_slider.playhead_sec
-        default_path = str(Path(self._get_target_dir()) / f"{self.file_path.stem}_{cur_sec:.2f}s.png")
-        out_file, _ = QFileDialog.getSaveFileName(self, "Сохранить кадр как...", default_path, "PNG изображение (*.png);;JPEG изображение (*.jpg)")
+        default_path = str(
+            Path(self._get_target_dir()) / f"{self.file_path.stem}_{cur_sec:.2f}s.png"
+        )
+        out_file, _ = QFileDialog.getSaveFileName(
+            self,
+            "Сохранить кадр как...",
+            default_path,
+            "PNG изображение (*.png);;JPEG изображение (*.jpg)",
+        )
         if not out_file:
             return
         flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
-        cmd = [FFMPEG_BIN, "-y", "-ss", f"{cur_sec:.3f}", "-i", str(self.file_path), "-frames:v", "1", "-q:v", "2", out_file]
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags, timeout=4)
-        QMessageBox.information(self, "Скриншот", f"Кадр сохранён:\n{Path(out_file).name}")
+        cmd = [
+            FFMPEG_BIN,
+            "-y",
+            "-ss",
+            f"{cur_sec:.3f}",
+            "-i",
+            str(self.file_path),
+            "-frames:v",
+            "1",
+            "-q:v",
+            "2",
+            out_file,
+        ]
+        subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=flags,
+            timeout=4,
+        )
+        QMessageBox.information(
+            self, "Скриншот", f"Кадр сохранён:\n{Path(out_file).name}"
+        )
 
     def _open_video_context_menu(self, global_pos):
         if not self.is_video or not self.file_path:
@@ -2710,7 +3379,9 @@ class MediaTrimmerWindow(QMainWindow):
         act_save_as = menu.addAction("💾 Сохранить кадр как...")
         act_quick = menu.addAction("⚡ Быстрый скриншот в папку сохранения")
         menu.addSeparator()
-        act_fs = menu.addAction("🗗 Выйти из полного экрана" if self.isFullScreen() else "⛶ На весь экран")
+        act_fs = menu.addAction(
+            "🗗 Выйти из полного экрана" if self.isFullScreen() else "⛶ На весь экран"
+        )
 
         chosen = menu.exec(global_pos)
         if chosen == act_copy:
@@ -2726,14 +3397,18 @@ class MediaTrimmerWindow(QMainWindow):
         if not self.is_video:
             return
         q_text = self.combo_preview_q.currentText()
-        target_h = 720 if "720p" in q_text else (480 if "480p" in q_text else (360 if "360p" in q_text else 0))
+        target_h = (
+            720
+            if "720p" in q_text
+            else (480 if "480p" in q_text else (360 if "360p" in q_text else 0))
+        )
         self.video_widget.set_preview_resolution(target_h)
         if target_h > 0:
             self.player.setVideoOutput(self.video_widget.video_sink)
         else:
             self.player.setVideoOutput(self.video_widget.video_item)
 
-# === [БЛОК 37: ПОКАДРОВАЯ ПЕРЕМОТКА, ПЕРЕХОД МЕЖДУ ОТРЕЗКАМИ И ВОСПРОИЗВЕДЕНИЕ] ===
+    # === [БЛОК 37: ПОКАДРОВАЯ ПЕРЕМОТКА, ПЕРЕХОД МЕЖДУ ОТРЕЗКАМИ И ВОСПРОИЗВЕДЕНИЕ] ===
     def _on_dur_changed(self, dur_ms):
         self.duration = dur_ms / 1000.0
         self.trim_slider.reset_segments(self.duration)
@@ -2784,7 +3459,11 @@ class MediaTrimmerWindow(QMainWindow):
                         self.seek_to(first_s, True)
                         return
 
-        if not self.seek_slider.is_dragging and not self.fs_seek_slider.is_dragging and self.duration > 0:
+        if (
+            not self.seek_slider.is_dragging
+            and not self.fs_seek_slider.is_dragging
+            and self.duration > 0
+        ):
             pos_val = int((cur / self.duration) * 1000000)
             self.seek_slider.setValue(pos_val)
             self.fs_seek_slider.setValue(pos_val)
@@ -2793,7 +3472,6 @@ class MediaTrimmerWindow(QMainWindow):
         self.wave_widget.current_pos = cur
         self.wave_widget.update()
         self._update_labels(cur)
-
 
     def _on_state_changed(self, state):
         is_play = state == QMediaPlayer.PlayingState
@@ -2823,12 +3501,19 @@ class MediaTrimmerWindow(QMainWindow):
         self.wave_widget.start_trim = self.trim_slider.start_trim
         self.wave_widget.end_trim = self.trim_slider.end_trim
         self.wave_widget.update()
-        target = self.trim_slider.start_trim if handle == "start" else self.trim_slider.end_trim
+        target = (
+            self.trim_slider.start_trim
+            if handle == "start"
+            else self.trim_slider.end_trim
+        )
 
         if self.settings.get("sync_seek_with_trim", False):
             self.seek_to(target, immediate)
         else:
-            if self.is_video and self.player.playbackState() != QMediaPlayer.PlayingState:
+            if (
+                self.is_video
+                and self.player.playbackState() != QMediaPlayer.PlayingState
+            ):
                 self._show_nearest_cached_frame(target, request_dense_strip=immediate)
             self._update_labels(self.trim_slider.playhead_sec)
 
@@ -2846,14 +3531,21 @@ class MediaTrimmerWindow(QMainWindow):
         QTimer.singleShot(95, self._stop_scrub_audio_snippet)
 
     def _stop_scrub_audio_snippet(self):
-        if self.seek_slider.is_dragging or self.fs_seek_slider.is_dragging or self._pending_seek_sec is not None:
+        if (
+            self.seek_slider.is_dragging
+            or self.fs_seek_slider.is_dragging
+            or self._pending_seek_sec is not None
+        ):
             self.player.pause()
 
     def _flush_pending_seek(self):
         if self._pending_seek_sec is not None:
             sec = self._pending_seek_sec
             self._pending_seek_sec = None
-            if self.is_video and self.player.playbackState() != QMediaPlayer.PlayingState:
+            if (
+                self.is_video
+                and self.player.playbackState() != QMediaPlayer.PlayingState
+            ):
                 need_new_strip = abs(sec - self._scrub_anchor_sec) > 9.0
                 if need_new_strip:
                     self._scrub_anchor_sec = sec
@@ -2883,15 +3575,24 @@ class MediaTrimmerWindow(QMainWindow):
             self._scrub_anchor_sec = sec
             self._pending_seek_sec = None
             self._seek_throttle_timer.stop()
-            if self.is_video and self.player.playbackState() != QMediaPlayer.PlayingState:
+            if (
+                self.is_video
+                and self.player.playbackState() != QMediaPlayer.PlayingState
+            ):
                 self._show_nearest_cached_frame(sec, request_dense_strip=True)
             self.player.setPosition(int(sec * 1000))
             for sink, stream in self.track_boost_layers:
                 stream.set_position_sec(sec)
-            if self.settings.get("scrub_audio", False) and self.player.playbackState() != QMediaPlayer.PlayingState:
+            if (
+                self.settings.get("scrub_audio", False)
+                and self.player.playbackState() != QMediaPlayer.PlayingState
+            ):
                 self._play_scrub_audio_snippet(sec)
         else:
-            if self.is_video and self.player.playbackState() != QMediaPlayer.PlayingState:
+            if (
+                self.is_video
+                and self.player.playbackState() != QMediaPlayer.PlayingState
+            ):
                 self._show_nearest_cached_frame(sec, request_dense_strip=False)
             self._pending_seek_sec = sec
             if not self._seek_throttle_timer.isActive():
@@ -2922,7 +3623,9 @@ class MediaTrimmerWindow(QMainWindow):
                     self.trim_slider.active_seg_idx = inside_idx
                 else:
                     # Ищем ближайший отрезок впереди ползунка или прыгаем на самый первый
-                    next_idx = next((i for i, (s, _e) in enumerate(ordered) if s >= cur), 0)
+                    next_idx = next(
+                        (i for i, (s, _e) in enumerate(ordered) if s >= cur), 0
+                    )
                     self.trim_slider.active_seg_idx = next_idx
                     start_sec = ordered[next_idx][0]
                     self.player.setPosition(int(round(start_sec * 1000)))
@@ -2933,19 +3636,21 @@ class MediaTrimmerWindow(QMainWindow):
                 self._update_labels(self.player.position() / 1000.0)
             self.player.play()
 
-# === [БЛОК 38: МЕТКИ ВРЕМЕНИ, ПОИСК КЛЮЧЕВЫХ КАДРОВ И АУДИОФИЛЬТРЫ] ===
+    # === [БЛОК 38: МЕТКИ ВРЕМЕНИ, ПОИСК КЛЮЧЕВЫХ КАДРОВ И АУДИОФИЛЬТРЫ] ===
     def _update_labels(self, cur):
-          self.lbl_time.setText(f"{self._format_time(cur)}  |  {self._format_time(self.duration)}")
-          cnt = len(self.trim_slider.segments)
-          if cnt > 1:
-              idx_n = self.trim_slider.active_seg_idx + 1
-              self.lbl_trim_info.setText(
-                  f"Отрезок #{idx_n}/{cnt}: {self._format_time(self.trim_slider.start_trim)} — {self._format_time(self.trim_slider.end_trim)}"
-              )
-          else:
-              self.lbl_trim_info.setText(
-                  f"Обрезка: {self._format_time(self.trim_slider.start_trim)} — {self._format_time(self.trim_slider.end_trim)}"
-              )
+        self.lbl_time.setText(
+            f"{self._format_time(cur)}  |  {self._format_time(self.duration)}"
+        )
+        cnt = len(self.trim_slider.segments)
+        if cnt > 1:
+            idx_n = self.trim_slider.active_seg_idx + 1
+            self.lbl_trim_info.setText(
+                f"Отрезок #{idx_n}/{cnt}: {self._format_time(self.trim_slider.start_trim)} — {self._format_time(self.trim_slider.end_trim)}"
+            )
+        else:
+            self.lbl_trim_info.setText(
+                f"Обрезка: {self._format_time(self.trim_slider.start_trim)} — {self._format_time(self.trim_slider.end_trim)}"
+            )
 
     def _build_ffmpeg_vol_filter(self, t_idx: int) -> str:
         raw_val = self.track_dbs.get(t_idx, 0)
@@ -2962,30 +3667,60 @@ class MediaTrimmerWindow(QMainWindow):
         flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
         scan_from = max(0.0, target_sec - 1.0)
         cmd = [
-            FFMPEG_BIN, "-read_intervals", f"{scan_from:.2f}%+6.0",
-            "-skip_frame", "nokey", "-select_streams", "v:0",
-            "-i", str(self.file_path),
-            "-vf", "showinfo", "-f", "null", "-"
+            FFMPEG_BIN,
+            "-read_intervals",
+            f"{scan_from:.2f}%+6.0",
+            "-skip_frame",
+            "nokey",
+            "-select_streams",
+            "v:0",
+            "-i",
+            str(self.file_path),
+            "-vf",
+            "showinfo",
+            "-f",
+            "null",
+            "-",
         ]
         try:
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags, timeout=4)
+            res = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                creationflags=flags,
+                timeout=4,
+            )
             info = res.stderr.decode("utf-8", errors="ignore")
-            pts_list = [float(m.group(1)) for m in re.finditer(r"pts_time:(\d+(?:\.\d+)?)", info)]
+            pts_list = [
+                float(m.group(1))
+                for m in re.finditer(r"pts_time:(\d+(?:\.\d+)?)", info)
+            ]
             for pts in pts_list:
                 if pts >= target_sec - 0.1:
                     return max(0.0, pts - 0.01)
         except Exception:
             pass
         return target_sec
-# === [БЛОК 39: ЕДИНОЕ ОКНО ЭКСПОРТА МЕДИАФАЙЛА, НАРЕЗКА ОТРЕЗКОВ И ТОЧКА ВХОДА] ===
-    def _run_batch_export_single_dialog(self, tasks: list, total_all_dur: float, title: str) -> bool:
+
+    # === [БЛОК 39: ЕДИНОЕ ОКНО ЭКСПОРТА МЕДИАФАЙЛА, НАРЕЗКА ОТРЕЗКОВ И ТОЧКА ВХОДА] ===
+    def _run_batch_export_single_dialog(
+        self, tasks: list, total_all_dur: float, title: str
+    ) -> bool:
         """Выполняет все этапы экспорта и склейки в ОДНОМ окне прогресса без мигания"""
         dlg = ProgressDialog(
-            self, title, "Подготовка экспорта...",
+            self,
+            title,
+            "Подготовка экспорта...",
             self.settings.get("accent", "#FF9900"),
-            self.settings.get("dark_mode", True)
+            self.settings.get("dark_mode", True),
         )
-        state = {"cancelled": False, "ok": True, "cur_proc": None, "done_dur": 0.0, "start_t": time.time()}
+        state = {
+            "cancelled": False,
+            "ok": True,
+            "cur_proc": None,
+            "done_dur": 0.0,
+            "start_t": time.time(),
+        }
 
         def _on_cancel():
             state["cancelled"] = True
@@ -3014,14 +3749,19 @@ class MediaTrimmerWindow(QMainWindow):
             QApplication.processEvents()
 
             step_ok = False
-            for attempt_cmd in ([cmd, fallback_cmd] if fallback_cmd else [cmd]):
+            for attempt_cmd in [cmd, fallback_cmd] if fallback_cmd else [cmd]:
                 if state["cancelled"]:
                     break
                 last_lines = []
                 try:
                     proc = subprocess.Popen(
-                        attempt_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                        text=True, encoding="utf-8", errors="ignore", creationflags=flags
+                        attempt_cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        encoding="utf-8",
+                        errors="ignore",
+                        creationflags=flags,
                     )
                     state["cur_proc"] = proc
                     for line in proc.stdout:
@@ -3034,7 +3774,11 @@ class MediaTrimmerWindow(QMainWindow):
                                 last_lines.pop(0)
                         m = time_re.search(line)
                         if m:
-                            cur_sec = int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
+                            cur_sec = (
+                                int(m.group(1)) * 3600
+                                + int(m.group(2)) * 60
+                                + float(m.group(3))
+                            )
                             overall_cur = state["done_dur"] + min(step_dur, cur_sec)
                             pct = min(99, max(1, int((overall_cur / safe_total) * 100)))
                             elapsed = time.time() - state["start_t"]
@@ -3043,7 +3787,9 @@ class MediaTrimmerWindow(QMainWindow):
                                 mins, secs = divmod(max(0, eta_sec), 60)
                                 eta_str = f"Общий прогресс: {pct}%  •  Осталось: ~{mins:02d}:{secs:02d}"
                             else:
-                                eta_str = f"Общий прогресс: {pct}%  •  Расчёт времени..."
+                                eta_str = (
+                                    f"Общий прогресс: {pct}%  •  Расчёт времени..."
+                                )
                             dlg.update_state(pct, eta_str)
                         QApplication.processEvents()
 
@@ -3064,7 +3810,11 @@ class MediaTrimmerWindow(QMainWindow):
                         pass
                 if not state["cancelled"]:
                     dlg.reject()
-                    QMessageBox.critical(self, "Ошибка", f"Операция прервана:\n" + "\n".join(last_lines[-6:]))
+                    QMessageBox.critical(
+                        self,
+                        "Ошибка",
+                        "Операция прервана:\n" + "\n".join(last_lines[-6:]),
+                    )
                 break
 
             state["done_dur"] += step_dur
@@ -3081,12 +3831,20 @@ class MediaTrimmerWindow(QMainWindow):
             return
 
         segments = self.trim_slider.get_sorted_segments() or [(0.0, self.duration)]
-        is_trimmed = len(segments) > 1 or (segments[0][0] > 0.05) or (segments[-1][1] < self.duration - 0.05)
+        is_trimmed = (
+            len(segments) > 1
+            or (segments[0][0] > 0.05)
+            or (segments[-1][1] < self.duration - 0.05)
+        )
 
         dlg = ExportDialog(
-            self, self.file_path, self.is_video, is_trimmed, len(segments),
+            self,
+            self.file_path,
+            self.is_video,
+            is_trimmed,
+            len(segments),
             self.settings.get("accent", "#FF9900"),
-            self.settings.get("dark_mode", True)
+            self.settings.get("dark_mode", True),
         )
         if dlg.exec() != QDialog.Accepted or not dlg.result_config:
             return
@@ -3095,7 +3853,9 @@ class MediaTrimmerWindow(QMainWindow):
         ext = cfg.get("format")
         save_base_dir = Path(self._get_target_dir())
         default_full = str(save_base_dir / f"{cfg.get('name')}.{ext}")
-        out_path, _ = QFileDialog.getSaveFileName(self, "Куда сохранить файл", default_full, f"*.{ext}")
+        out_path, _ = QFileDialog.getSaveFileName(
+            self, "Куда сохранить файл", default_full, f"*.{ext}"
+        )
         if not out_path:
             return
 
@@ -3103,8 +3863,9 @@ class MediaTrimmerWindow(QMainWindow):
             free_bytes = shutil.disk_usage(Path(out_path).parent).free
             if free_bytes < 50 * 1024 * 1024:
                 QMessageBox.warning(
-                    self, "Недостаточно места на диске",
-                    f"На диске {Path(out_path).drive} осталось менее 50 МБ свободного места ({free_bytes // (1024 * 1024)} МБ)."
+                    self,
+                    "Недостаточно места на диске",
+                    f"На диске {Path(out_path).drive} осталось менее 50 МБ свободного места ({free_bytes // (1024 * 1024)} МБ).",
                 )
                 return
         except Exception:
@@ -3123,16 +3884,32 @@ class MediaTrimmerWindow(QMainWindow):
         for seg_idx, (seg_s, seg_e) in enumerate(segments, 1):
             clip_len = max(0.1, seg_e - seg_s)
             if merge_segments:
-                part_path = self.cache_dir / f"seg_part_{self.load_counter}_{seg_idx}.{ext}"
+                part_path = (
+                    self.cache_dir / f"seg_part_{self.load_counter}_{seg_idx}.{ext}"
+                )
                 temp_parts.append(part_path)
             elif len(segments) > 1:
-                part_path = out_p_obj.with_name(f"{out_p_obj.stem}_часть{seg_idx}{out_p_obj.suffix}")
+                part_path = out_p_obj.with_name(
+                    f"{out_p_obj.stem}_часть{seg_idx}{out_p_obj.suffix}"
+                )
             else:
                 part_path = out_p_obj
 
-            hdr = f"Обработка отрезка {seg_idx} из {len(segments)}: {part_path.name}" if len(segments) > 1 else f"Сохранение: {part_path.name}"
-            cmd = self._build_segment_ffmpeg_cmd(cfg, seg_s, clip_len, ext, str(part_path), force_cpu=False)
-            fb_cmd = self._build_segment_ffmpeg_cmd(cfg, seg_s, clip_len, ext, str(part_path), force_cpu=True) if has_gpu else None
+            hdr = (
+                f"Обработка отрезка {seg_idx} из {len(segments)}: {part_path.name}"
+                if len(segments) > 1
+                else f"Сохранение: {part_path.name}"
+            )
+            cmd = self._build_segment_ffmpeg_cmd(
+                cfg, seg_s, clip_len, ext, str(part_path), force_cpu=False
+            )
+            fb_cmd = (
+                self._build_segment_ffmpeg_cmd(
+                    cfg, seg_s, clip_len, ext, str(part_path), force_cpu=True
+                )
+                if has_gpu
+                else None
+            )
             tasks.append((hdr, cmd, clip_len, fb_cmd, [part_path]))
 
         concat_txt = None
@@ -3141,14 +3918,35 @@ class MediaTrimmerWindow(QMainWindow):
             lines = [f"file '{p.as_posix()}'" for p in temp_parts]
             concat_txt.write_text("\n".join(lines), encoding="utf-8")
             merge_cmd = [
-                FFMPEG_BIN, "-y", "-f", "concat", "-safe", "0",
-                "-i", str(concat_txt), "-c", "copy", str(out_p_obj)
+                FFMPEG_BIN,
+                "-y",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                str(concat_txt),
+                "-c",
+                "copy",
+                str(out_p_obj),
             ]
-            tasks.append((f"Финальная склейка {len(temp_parts)} отрезков в {out_p_obj.name}...", merge_cmd, max(0.5, total_clips_dur * 0.08), None, [out_p_obj]))
+            tasks.append(
+                (
+                    f"Финальная склейка {len(temp_parts)} отрезков в {out_p_obj.name}...",
+                    merge_cmd,
+                    max(0.5, total_clips_dur * 0.08),
+                    None,
+                    [out_p_obj],
+                )
+            )
 
         grand_total_dur = sum(t[2] for t in tasks)
         self.btn_export.setEnabled(False)
-        all_ok = self._run_batch_export_single_dialog(tasks, grand_total_dur, "Экспорт и склейка" if merge_segments else "Экспорт файла")
+        all_ok = self._run_batch_export_single_dialog(
+            tasks,
+            grand_total_dur,
+            "Экспорт и склейка" if merge_segments else "Экспорт файла",
+        )
 
         for tp in temp_parts:
             tp.unlink(missing_ok=True)
@@ -3159,18 +3957,34 @@ class MediaTrimmerWindow(QMainWindow):
         if all_ok:
             QMessageBox.information(self, "Готово", "Экспорт успешно завершён!")
 
-    def _build_segment_ffmpeg_cmd(self, cfg: dict, start_sec: float, clip_len: float, ext: str, out_path_str: str, force_cpu: bool = False) -> list:
+    def _build_segment_ffmpeg_cmd(
+        self,
+        cfg: dict,
+        start_sec: float,
+        clip_len: float,
+        ext: str,
+        out_path_str: str,
+        force_cpu: bool = False,
+    ) -> list:
         abr_kbps = str(cfg.get("abitrate", "192"))
         ach_str = cfg.get("achannels", "Оригинал")
-        ach_args = ["-ac", "1"] if "Моно" in ach_str else (["-ac", "2"] if "Стерео" in ach_str else [])
+        ach_args = (
+            ["-ac", "1"]
+            if "Моно" in ach_str
+            else (["-ac", "2"] if "Стерео" in ach_str else [])
+        )
 
         if not self.is_video:
             cmd = [
-                FFMPEG_BIN, "-y",
-                "-ss", f"{start_sec:.3f}",
-                "-i", str(self.file_path),
-                "-t", f"{clip_len:.3f}",
-                *ach_args
+                FFMPEG_BIN,
+                "-y",
+                "-ss",
+                f"{start_sec:.3f}",
+                "-i",
+                str(self.file_path),
+                "-t",
+                f"{clip_len:.3f}",
+                *ach_args,
             ]
             if ext in {"mp3", "aac", "m4a", "ogg", "opus"}:
                 cmd.extend(["-b:a", f"{abr_kbps}k"])
@@ -3187,8 +4001,14 @@ class MediaTrimmerWindow(QMainWindow):
         vf_chain = []
         res_str = cfg.get("resolution", "Оригинал")
         res_map = {
-            "4320p (8K)": 4320, "2160p (4K)": 2160, "1440p (2K)": 1440,
-            "1080p": 1080, "720p": 720, "480p": 480, "240p": 240, "144p": 144
+            "4320p (8K)": 4320,
+            "2160p (4K)": 2160,
+            "1440p (2K)": 1440,
+            "1080p": 1080,
+            "720p": 720,
+            "480p": 480,
+            "240p": 240,
+            "144p": 144,
         }
         if res_str in res_map:
             vf_chain.append(f"scale=-2:{res_map.get(res_str)}")
@@ -3203,20 +4023,30 @@ class MediaTrimmerWindow(QMainWindow):
 
         orig_ext = self.file_path.suffix.lower().lstrip(".")
         want_copy = "Мгновенно" in cfg.get("speed_mode", "")
-        can_stream_copy = want_copy and not vf_chain and not v_bitrate_args and ext == orig_ext
+        can_stream_copy = (
+            want_copy and not vf_chain and not v_bitrate_args and ext == orig_ext
+        )
 
         if can_stream_copy:
             kf_start = self._snap_to_keyframe(start_sec)
             adj_len = max(0.2, (start_sec + clip_len) - kf_start)
             cmd = [
-                FFMPEG_BIN, "-y",
-                "-ss", f"{kf_start:.3f}",
-                "-i", str(self.file_path),
-                "-t", f"{adj_len:.3f}",
-                "-map", "0:v:0",
-                "-c:v", "copy",
-                "-use_editlist", "0",
-                "-avoid_negative_ts", "make_zero"
+                FFMPEG_BIN,
+                "-y",
+                "-ss",
+                f"{kf_start:.3f}",
+                "-i",
+                str(self.file_path),
+                "-t",
+                f"{adj_len:.3f}",
+                "-map",
+                "0:v:0",
+                "-c:v",
+                "copy",
+                "-use_editlist",
+                "0",
+                "-avoid_negative_ts",
+                "make_zero",
             ]
         else:
             encoder = "libx264" if force_cpu else BEST_GPU_ENCODER
@@ -3224,25 +4054,58 @@ class MediaTrimmerWindow(QMainWindow):
                 v_codec_args = ["-c:v", "h264_nvenc", "-preset", "p1", "-cq", crf_val]
                 vf_chain.append("scale=trunc(iw/2)*2:trunc(ih/2)*2,format=nv12")
             elif encoder == "h264_amf":
-                auto_bv = [] if v_bitrate_args else ["-b:v", "12M" if crf_val == "18" else ("7M" if crf_val == "23" else "4M")]
+                auto_bv = (
+                    []
+                    if v_bitrate_args
+                    else [
+                        "-b:v",
+                        "12M"
+                        if crf_val == "18"
+                        else ("7M" if crf_val == "23" else "4M"),
+                    ]
+                )
                 v_codec_args = ["-c:v", "h264_amf", *auto_bv]
                 vf_chain.append("scale=trunc(iw/2)*2:trunc(ih/2)*2,format=nv12")
             elif encoder == "h264_qsv":
-                v_codec_args = ["-c:v", "h264_qsv", "-preset", "veryfast", "-global_quality", crf_val]
+                v_codec_args = [
+                    "-c:v",
+                    "h264_qsv",
+                    "-preset",
+                    "veryfast",
+                    "-global_quality",
+                    crf_val,
+                ]
                 vf_chain.append("scale=trunc(iw/2)*2:trunc(ih/2)*2,format=nv12")
             else:
-                v_codec_args = ["-c:v", "libx264", "-preset", "ultrafast", "-crf", crf_val, "-threads", "0"]
+                v_codec_args = [
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "ultrafast",
+                    "-crf",
+                    crf_val,
+                    "-threads",
+                    "0",
+                ]
                 vf_chain.append("scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p")
 
             cmd = [
-                FFMPEG_BIN, "-y",
-                "-ss", f"{max(0.0, start_sec - 2.0):.3f}",
-                "-i", str(self.file_path),
-                "-ss", f"{min(2.0, start_sec):.3f}",
-                "-t", f"{clip_len:.3f}",
-                "-map", "0:v:0",
-                *v_codec_args, *v_bitrate_args,
-                "-vf", ",".join(vf_chain)
+                FFMPEG_BIN,
+                "-y",
+                "-ss",
+                f"{max(0.0, start_sec - 2.0):.3f}",
+                "-i",
+                str(self.file_path),
+                "-ss",
+                f"{min(2.0, start_sec):.3f}",
+                "-t",
+                f"{clip_len:.3f}",
+                "-map",
+                "0:v:0",
+                *v_codec_args,
+                *v_bitrate_args,
+                "-vf",
+                ",".join(vf_chain),
             ]
 
         if cfg.get("no_audio") or ext == "gif" or not self.output_groups:
@@ -3250,7 +4113,10 @@ class MediaTrimmerWindow(QMainWindow):
         else:
             no_audio_edits = (
                 len(self.output_groups) == self.track_count
-                and all(len(g) == 1 and g == [i] and self.track_dbs.get(i, 0) == 0 for i, g in enumerate(self.output_groups))
+                and all(
+                    len(g) == 1 and g == [i] and self.track_dbs.get(i, 0) == 0
+                    for i, g in enumerate(self.output_groups)
+                )
                 and not ach_args
                 and abr_kbps == "192"
             )
@@ -3271,7 +4137,9 @@ class MediaTrimmerWindow(QMainWindow):
                             filters.append(f"[0:a:{t_idx}]{vf}{lbl}")
                             in_labels.append(lbl)
                         joined = "".join(in_labels)
-                        filters.append(f"{joined}amix=inputs={len(grp)}:duration=first:dropout_transition=0[aout{out_i}]")
+                        filters.append(
+                            f"{joined}amix=inputs={len(grp)}:duration=first:dropout_transition=0[aout{out_i}]"
+                        )
 
                 cmd.extend(["-filter_complex", ";".join(filters)])
                 for out_i in range(len(self.output_groups)):
