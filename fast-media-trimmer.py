@@ -10,39 +10,6 @@ import threading
 import time
 import urllib.request
 from pathlib import Path
-
-
-def _ensure_dependencies():
-    required = [
-        ("PySide6", "PySide6"),
-        ("numpy", "numpy"),
-        ("imageio_ffmpeg", "imageio-ffmpeg"),
-    ]
-    missing = [pip_name for mod_name, pip_name in required if importlib.util.find_spec(mod_name) is None]
-    if not missing:
-        return
-
-    if sys.platform == "win32":
-        try:
-            hwnd = ctypes.windll.kernel32.GetConsoleWindow()
-            if hwnd:
-                ctypes.windll.user32.ShowWindow(hwnd, 5)
-        except Exception:
-            pass
-
-    print("=== Первый запуск: установка необходимых модулей ===")
-    print(f"Необходимо установить: {', '.join(missing)}\n")
-    for pip_name in missing:
-        print(f"Установка {pip_name}... Пожалуйста, подождите...")
-        res = subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", pip_name])
-        if res.returncode != 0:
-            print(f"\n[ОШИБКА] Не удалось установить {pip_name}. Проверьте подключение к интернету.")
-            input("Нажмите Enter для выхода...")
-            sys.exit(1)
-    print("\nВсе модули успешно установлены! Запуск программы...\n")
-
-
-_ensure_dependencies()
 # === [БЛОК 2: ИМПОРТЫ PYSIDE6, ВЕРСИЯ И КОНСТАНТЫ] ===
 import numpy as np
 from PySide6.QtCore import QIODevice, Qt, QThread, QTimer, QUrl, QRectF, Signal
@@ -70,8 +37,8 @@ except ImportError:
     FFMPEG_BIN = "ffmpeg"
 
 APP_VERSION = "1.0.1"
-GITHUB_VERSION_URL = "https://raw.githubusercontent.com/lClokmanl/fast-media-trimmer/main/version.txt"
-GITHUB_SCRIPT_URL = "https://raw.githubusercontent.com/lClokmanl/fast-media-trimmer/main/fast-media-trimmer.py"
+GITHUB_VERSION_URL = "https://github.com/Rimix98/fast-media-trimmer/blob/main/version.txt"
+GITHUB_SCRIPT_URL = "https://raw.githubusercontent.com/Rimix98/fast-media-trimmer/refs/heads/main/fast-media-trimmer.py"
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SETTINGS_FILE = SCRIPT_DIR / "trimmer_settings.json"

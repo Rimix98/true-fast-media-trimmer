@@ -22,7 +22,7 @@
    ```bash
    python fast-media-trimmer.py
    ```
-   *(Необходимые библиотеки `PySide6`, `numpy`, `imageio-ffmpeg` и недостающие модули установятся автоматически при первом запуске).*
+   *(Необходимые библиотеки `PySide6`, `numpy`, `imageio-ffmpeg` и недостающие модули установите сами через pip install -r requirements.txt).*
 
 
 ## Горячие клавиши
