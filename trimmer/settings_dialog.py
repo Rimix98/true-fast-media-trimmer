@@ -22,13 +22,17 @@ from PySide6.QtWidgets import (
 
 from trimmer.constants import APP_VERSION, ENTRY_SCRIPT, SCRIPT_DIR
 from trimmer.context_menu import register_context_menu
+from trimmer.platform_support import (
+    IS_WINDOWS,
+    set_console_visible,
+    set_windows_titlebar_theme,
+)
 from trimmer.settings import (
     PALETTE_DARK,
     PALETTE_LIGHT,
     get_contrast_text_color,
     save_app_settings,
 )
-from trimmer.system import set_console_visible, set_windows_titlebar_theme
 from trimmer.updater import (
     _parse_ver_tuple,
     check_github_update,
@@ -160,17 +164,20 @@ class SettingsDialog(QDialog):
         self.lbl_dev_sec = QLabel("4. Интеграция и обновления:")
         self.lay.addWidget(self.lbl_dev_sec)
 
-        self.cb_ctx_menu = QCheckBox(
-            "Добавить «Медиа Обрезчик» в меню «Открыть с помощью»"
-        )
-        self.cb_ctx_menu.setChecked(self.settings.get("context_menu", False))
-        self.cb_ctx_menu.stateChanged.connect(self._on_flags_changed)
-        self.lay.addWidget(self.cb_ctx_menu)
+        # Пункты ниже реализованы через Windows API (см. platform_support)
+        # и на других платформах не работают — там они не показываются.
+        if IS_WINDOWS:
+            self.cb_ctx_menu = QCheckBox(
+                "Добавить «Медиа Обрезчик» в меню «Открыть с помощью»"
+            )
+            self.cb_ctx_menu.setChecked(self.settings.get("context_menu", False))
+            self.cb_ctx_menu.stateChanged.connect(self._on_flags_changed)
+            self.lay.addWidget(self.cb_ctx_menu)
 
-        self.cb_show_console = QCheckBox("Отображение консоли программы")
-        self.cb_show_console.setChecked(self.settings.get("show_console", False))
-        self.cb_show_console.stateChanged.connect(self._on_flags_changed)
-        self.lay.addWidget(self.cb_show_console)
+            self.cb_show_console = QCheckBox("Отображение консоли программы")
+            self.cb_show_console.setChecked(self.settings.get("show_console", False))
+            self.cb_show_console.stateChanged.connect(self._on_flags_changed)
+            self.lay.addWidget(self.cb_show_console)
 
         upd_row = QHBoxLayout()
         self.lbl_ver_info = QLabel(f"Текущая версия: {APP_VERSION}")
@@ -222,10 +229,11 @@ class SettingsDialog(QDialog):
         self.settings["scrub_audio"] = self.cb_scrub_audio.isChecked()
         self.settings["preload_frames_dialog"] = self.cb_preload_frames.isChecked()
         self.settings["scrub_resolution"] = new_res
-        self.settings["context_menu"] = self.cb_ctx_menu.isChecked()
-        self.settings["show_console"] = self.cb_show_console.isChecked()
-        register_context_menu(self.settings["context_menu"])
-        set_console_visible(self.settings["show_console"])
+        if IS_WINDOWS:
+            self.settings["context_menu"] = self.cb_ctx_menu.isChecked()
+            self.settings["show_console"] = self.cb_show_console.isChecked()
+            register_context_menu(self.settings["context_menu"])
+            set_console_visible(self.settings["show_console"])
         self._save_and_apply()
 
         if old_res != new_res and hasattr(

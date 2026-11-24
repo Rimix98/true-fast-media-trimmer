@@ -6,6 +6,8 @@ import time
 
 from PySide6.QtCore import QThread, Signal
 
+from trimmer.platform_support import subprocess_flags
+
 
 # === [БЛОК 7: ФОНОВЫЙ ПОТОК FFMPEG С РАСШИРЕННЫМ ЛОГОМ ОШИБОК] ===
 class FFmpegTaskThread(QThread):
@@ -31,7 +33,7 @@ class FFmpegTaskThread(QThread):
 
     def run(self):
         try:
-            flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+            flags = subprocess_flags()
             self.proc = subprocess.Popen(
                 self.cmd,
                 stdout=subprocess.PIPE,

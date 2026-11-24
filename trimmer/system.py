@@ -1,47 +1,12 @@
-"""Системные функции Windows, дБ-подписи и выбор аппаратного кодировщика."""
+"""ДБ-подписи и выбор аппаратного кодировщика (платформо-независимо)."""
 
-import ctypes
 import subprocess
-import sys
-
-from PySide6.QtWidgets import QWidget
 
 from trimmer.constants import FFMPEG_BIN, MUTE_DB_VAL
+from trimmer.platform_support import subprocess_flags
 
 
-# === [БЛОК 4: СИСТЕМНЫЕ ФУНКЦИИ WINDOWS И ЭНКОДЕР] ===
-def set_windows_titlebar_theme(widget: QWidget, is_dark: bool):
-    if sys.platform != "win32":
-        return
-    try:
-        hwnd = int(widget.winId())
-        val = ctypes.c_int(1 if is_dark else 0)
-        ctypes.windll.dwmapi.DwmSetWindowAttribute(
-            hwnd, 20, ctypes.byref(val), ctypes.sizeof(val)
-        )
-        ctypes.windll.dwmapi.DwmSetWindowAttribute(
-            hwnd, 19, ctypes.byref(val), ctypes.sizeof(val)
-        )
-    except Exception:
-        pass
-
-
-def set_console_visible(visible: bool):
-    if sys.platform != "win32":
-        return
-    try:
-        hwnd = ctypes.windll.kernel32.GetConsoleWindow()
-        if not hwnd:
-            return
-        root_hwnd = ctypes.windll.user32.GetAncestor(hwnd, 3) or hwnd
-        cmd_show = 5 if visible else 0
-        ctypes.windll.user32.ShowWindow(hwnd, cmd_show)
-        if root_hwnd != hwnd:
-            ctypes.windll.user32.ShowWindow(root_hwnd, cmd_show)
-    except Exception:
-        pass
-
-
+# === [БЛОК 4: ДБ-ПОДПИСИ И ЭНКОДЕР] ===
 def format_db_label(raw_val: int) -> str:
     if raw_val <= MUTE_DB_VAL:
         return "-∞ dB"
@@ -52,7 +17,7 @@ def format_db_label(raw_val: int) -> str:
 
 
 def detect_best_video_encoder() -> str:
-    flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+    flags = subprocess_flags()
     candidates = [
         ("h264_nvenc", ["-preset", "p1"]),
         ("h264_amf", ["-quality", "speed"]),

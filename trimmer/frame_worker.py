@@ -7,6 +7,7 @@ from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QImage
 
 from trimmer.constants import FFMPEG_BIN
+from trimmer.platform_support import subprocess_flags
 
 
 # === [БЛОК 6.1: ЭКСТРАКТОР КАДРОВ ДЛЯ СЕТКИ И СКРАББИНГА] ===
@@ -109,15 +110,12 @@ class FrameScrubWorker(QThread):
         return max(16, w), max(16, h)
 
     def _get_proc_flags_and_hw(self) -> tuple:
-        no_win = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
-        below_norm = (
-            0x00004000 if hasattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS") else 0
-        )
+        # low_priority — только при воспроизведении или без GPU (см. ниже)
         with self.lock:
             playing = self.is_playing
         if playing or not self.use_gpu:
-            return (no_win | below_norm), ["-threads", "4"]
-        return no_win, ["-hwaccel", "auto"]
+            return subprocess_flags(low_priority=True), ["-threads", "4"]
+        return subprocess_flags(), ["-hwaccel", "auto"]
 
     def _read_exact_bytes(self, pipe, num_bytes: int) -> bytes:
         chunks = []

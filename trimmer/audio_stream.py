@@ -6,6 +6,7 @@ import numpy as np
 from PySide6.QtCore import QIODevice
 
 from trimmer.constants import FFMPEG_BIN
+from trimmer.platform_support import subprocess_flags
 
 
 class GainAudioStream(QIODevice):
@@ -36,7 +37,7 @@ class GainAudioStream(QIODevice):
 
     def set_position_sec(self, sec: float):
         self.stop_proc()
-        flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+        flags = subprocess_flags()
         cmd = [
             FFMPEG_BIN,
             "-loglevel",

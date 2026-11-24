@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QFileDialog, QMessageBox
 
 from trimmer.constants import FFMPEG_BIN
 from trimmer.export_dialog import ExportDialog
+from trimmer.platform_support import subprocess_flags
 from trimmer.progress_dialog import ProgressDialog
 from trimmer.settings import save_app_settings
 from trimmer.system import BEST_GPU_ENCODER
@@ -52,7 +53,7 @@ class WindowExportMixin:
         dlg.show()
         QApplication.processEvents()
 
-        flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+        flags = subprocess_flags()
         time_re = re.compile(r"time=(\d+):(\d+):(\d+(?:\.\d+)?)")
         safe_total = max(0.1, total_all_dur)
 

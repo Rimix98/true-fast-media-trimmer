@@ -16,8 +16,9 @@ from PySide6.QtWidgets import (
 )
 
 from trimmer.constants import AUDIO_FORMATS, VIDEO_FORMATS
+from trimmer.platform_support import set_windows_titlebar_theme
 from trimmer.settings import get_contrast_text_color
-from trimmer.system import BEST_GPU_ENCODER, set_windows_titlebar_theme
+from trimmer.system import BEST_GPU_ENCODER
 
 
 # === [БЛОК 18: ОКНО НАСТРОЕК ЭКСПОРТА (ЧАСТЬ 1)] ===

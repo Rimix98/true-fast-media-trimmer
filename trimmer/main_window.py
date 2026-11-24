@@ -14,8 +14,8 @@ from PySide6.QtWidgets import QMainWindow
 
 from trimmer.constants import SCRIPT_DIR
 from trimmer.frame_worker import FrameScrubWorker
+from trimmer.platform_support import set_console_visible, set_windows_titlebar_theme
 from trimmer.settings import load_app_settings
-from trimmer.system import set_console_visible, set_windows_titlebar_theme
 from trimmer.window_controls import WindowControlsMixin
 from trimmer.window_export import WindowExportMixin
 from trimmer.window_files import WindowFilesMixin

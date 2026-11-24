@@ -11,6 +11,7 @@ from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QMessageBox
 
 from trimmer.constants import FFMPEG_BIN, VIDEO_EXTS
+from trimmer.platform_support import subprocess_flags
 from trimmer.progress_dialog import ProgressDialog
 
 
@@ -320,7 +321,7 @@ class WindowFilesMixin:
         if not self.is_video or not self.file_path:
             return QImage()
         cur_sec = self.trim_slider.playhead_sec
-        flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+        flags = subprocess_flags()
         src_w = int(getattr(self, "video_src_w", 0) or 0)
         src_h = int(getattr(self, "video_src_h", 0) or 0)
         seek_args = [
@@ -397,7 +398,7 @@ class WindowFilesMixin:
         out_png = (
             Path(self._get_target_dir()) / f"{self.file_path.stem}_{cur_sec:.2f}s.png"
         )
-        flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+        flags = subprocess_flags()
         cmd = [
             FFMPEG_BIN,
             "-y",
@@ -440,7 +441,7 @@ class WindowFilesMixin:
         )
         if not out_file:
             return
-        flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+        flags = subprocess_flags()
         cmd = [
             FFMPEG_BIN,
             "-y",

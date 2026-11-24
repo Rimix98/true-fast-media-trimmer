@@ -16,8 +16,9 @@ from PySide6.QtWidgets import (
 )
 
 from trimmer.constants import MAX_DB_VAL, MUTE_DB_VAL
+from trimmer.platform_support import set_windows_titlebar_theme
 from trimmer.settings import get_contrast_text_color
-from trimmer.system import format_db_label, set_windows_titlebar_theme
+from trimmer.system import format_db_label
 
 
 # === [БЛОК 14: ОКНО МИКШЕРА ЗВУКОВЫХ ДОРОЖЕК] ===

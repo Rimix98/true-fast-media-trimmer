@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QMessageBox
 from trimmer.audio_stream import GainAudioStream
 from trimmer.constants import FFMPEG_BIN, FFPROBE_BIN, MUTE_DB_VAL, SCRIPT_DIR
 from trimmer.ffmpeg_thread import FFmpegTaskThread
+from trimmer.platform_support import subprocess_flags
 from trimmer.progress_dialog import ProgressDialog
 from trimmer.settings_dialog import SettingsDialog
 from trimmer.tracks_dialog import AudioTracksDialog
@@ -210,7 +211,7 @@ class WindowControlsMixin:
                 return probed
 
         cmd = [FFMPEG_BIN, "-i", path_str]
-        flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+        flags = subprocess_flags()
         res = subprocess.run(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags
         )
@@ -290,7 +291,7 @@ class WindowControlsMixin:
             "json",
             path_str,
         ]
-        flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+        flags = subprocess_flags()
         try:
             res = subprocess.run(
                 cmd,

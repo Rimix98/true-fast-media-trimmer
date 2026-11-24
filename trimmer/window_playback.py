@@ -8,6 +8,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtMultimedia import QAudio, QMediaPlayer
 
 from trimmer.constants import FFMPEG_BIN, FFPROBE_BIN, MUTE_DB_VAL
+from trimmer.platform_support import subprocess_flags
 
 
 class WindowPlaybackMixin:
@@ -319,7 +320,7 @@ class WindowPlaybackMixin:
         ffmpeg с showinfo (полное декодирование интервала) — запасной путь,
         когда ffprobe недоступен.
         """
-        flags = 0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+        flags = subprocess_flags()
         span = end_sec - start_sec
         if FFPROBE_BIN:
             cmd = [

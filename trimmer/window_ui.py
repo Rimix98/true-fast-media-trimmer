@@ -18,9 +18,9 @@ from PySide6.QtWidgets import (
 )
 
 from trimmer.constants import AUDIO_EXTS, VIDEO_EXTS
+from trimmer.platform_support import set_windows_titlebar_theme
 from trimmer.seek_slider import ClickableSeekSlider
 from trimmer.settings import get_contrast_text_color
-from trimmer.system import set_windows_titlebar_theme
 from trimmer.trim_slider import DualTrimSlider
 from trimmer.video_view import ClickableVideoWidget
 from trimmer.waveform import AudioWaveformWidget

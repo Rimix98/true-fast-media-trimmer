@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from trimmer.system import set_windows_titlebar_theme
+from trimmer.platform_support import set_windows_titlebar_theme
 
 
 # === [БЛОК 8: ДИАЛОГ ПРОГРЕСС-БАРА] ===
