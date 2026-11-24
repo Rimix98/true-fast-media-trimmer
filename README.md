@@ -27,6 +27,38 @@
    *(Необходимые библиотеки `PySide6`, `numpy`, `imageio-ffmpeg`.*
 
 
+## Структура проекта
+
+Код разнесён по небольшим модулям внутри пакета `trimmer/`, точка входа — `main.py`:
+
+```
+main.py                    # запуск приложения (python main.py)
+trimmer/
+├── app.py                 # создание QApplication и главного окна
+├── constants.py           # версия, пути, форматы, границы дБ
+├── settings.py            # настройки по умолчанию, палитры, загрузка/сохранение
+├── system.py              # тема заголовка Windows, дБ-подписи, выбор кодировщика
+├── context_menu.py        # интеграция в меню «Открыть с помощью» (Windows)
+├── updater.py             # проверка обновлений на GitHub
+├── frame_worker.py        # фоновое извлечение кадров (FFmpeg → QImage)
+├── audio_stream.py        # поток PCM-звука дорожки с усилением
+├── ffmpeg_thread.py       # фоновый запуск FFMpeg с прогрессом и ETA
+├── seek_slider.py         # ползунок перемотки
+├── waveform.py            # виджет аудиоволны
+├── trim_slider.py         # мульти-отрезковый ползунок обрезки
+├── video_view.py          # видеовиджет с предпросмотром
+├── progress_dialog.py     # диалог прогресс-бара
+├── tracks_dialog.py       # микшер звуковых дорожек
+├── export_dialog.py       # настройки экспорта
+├── settings_dialog.py     # настройки программы
+├── window_ui.py           # миксин: интерфейс, тема, зум, drag & drop
+├── window_controls.py     # миксин: хоткеи, диалоги, микшер, прогресс
+├── window_files.py        # миксин: открытие файлов, кадры, скриншоты
+├── window_playback.py     # миксин: воспроизведение, перемотка, метки
+├── window_export.py       # миксин: пайплайн экспорта
+└── main_window.py         # класс MediaTrimmerWindow (сборка миксинов)
+```
+
 ## Горячие клавиши
 
 | Клавиша | Действие |
