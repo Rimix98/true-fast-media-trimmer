@@ -14,6 +14,8 @@
 
 ## Установка и запуск
 
+Готовые сборки (Windows `.exe` и Linux `.AppImage`) — на странице [Releases](../../releases).
+
 1. Установите **Python 3.10+** (при установке отметьте *Add Python to PATH*).
 2. Скачайте репозиторий.
 3. Установите зависимости:
@@ -37,8 +39,9 @@ trimmer/
 ├── app.py                 # создание QApplication и главного окна
 ├── constants.py           # версия, пути, форматы, границы дБ
 ├── settings.py            # настройки по умолчанию, палитры, загрузка/сохранение
-├── system.py              # тема заголовка Windows, дБ-подписи, выбор кодировщика
-├── context_menu.py        # интеграция в меню «Открыть с помощью» (Windows)
+├── platform_support.py    # платформо-зависимый код: Windows API (ctypes/winreg), флаги процессов
+├── system.py              # дБ-подписи и выбор кодировщика
+├── context_menu.py        # обёртка над register_context_menu (Windows)
 ├── updater.py             # проверка обновлений на GitHub
 ├── frame_worker.py        # фоновое извлечение кадров (FFmpeg → QImage)
 ├── audio_stream.py        # поток PCM-звука дорожки с усилением
@@ -57,7 +60,25 @@ trimmer/
 ├── window_playback.py     # миксин: воспроизведение, перемотка, метки
 ├── window_export.py       # миксин: пайплайн экспорта
 └── main_window.py         # класс MediaTrimmerWindow (сборка миксинов)
+
+packaging/                 # сборка дистрибутивов: PyInstaller spec, AppImage, иконки
+.github/workflows/build.yml # CI: Windows .exe, Linux AppImage и релиз на тег
 ```
+
+## Сборка
+
+* **Windows (.exe)** — GitHub Actions собирает один файл `MediaTrimmer.exe` на каждый push и публикует его в релиз на тег `v*`. Вручную:
+  ```bash
+  pip install -r requirements.txt pyinstaller
+  set MEDIA_TRIMMER_ONEFILE=1 && pyinstaller --noconfirm packaging/media_trimmer.spec
+  ```
+* **Linux (AppImage)** — нужен `mksquashfs` (пакет `squashfs-tools`):
+  ```bash
+  pip install -r requirements.txt pyinstaller
+  bash packaging/build_appimage.sh
+  ```
+  На выходе — `dist/MediaTrimmer-<версия>-<архитектура>.AppImage`, FUSE не обязателен.
+* Иконки (`packaging/media_trimmer.png` / `.ico`) пересоздаются через `python packaging/make_icon.py` (PySide6 + Pillow).
 
 ## Горячие клавиши
 

@@ -1,3 +1,7 @@
 __pycache__/
 .trimmer_cache/
 trimmer_settings.json
+build/
+dist/
+*.AppDir/
+.venv/
