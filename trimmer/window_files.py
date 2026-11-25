@@ -6,13 +6,19 @@ from pathlib import Path
 
 import numpy as np
 from PySide6.QtCore import QTimer, QUrl
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtGui import QImage
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QMessageBox
 
 from trimmer.constants import FFMPEG_BIN, VIDEO_EXTS
 from trimmer.platform_support import subprocess_flags
 from trimmer.progress_dialog import ProgressDialog
+
+# Кэш опорных кадров ограничен не только числом кадров, но и объёмом:
+# при «Оригинале» один 4K-кадр занимает ~25 МБ, и 2500 таких кадров
+# означали бы десятки гигабайт и постоянные подвисания на аллокациях.
+FRAME_CACHE_BUDGET_BYTES = 512 * 1024 * 1024
+FRAME_CACHE_MAX_ITEMS = 2500
 
 
 class WindowFilesMixin:
@@ -62,7 +68,7 @@ class WindowFilesMixin:
         self._clear_track_players()
         self._cleanup_cache_files()
         self.trim_slider.reset_segments(0.0)
-        self.frame_cache.clear()
+        self._clear_frame_cache()
         self._last_scrub_centis = -1
         self._scrub_anchor_sec = 0.0
         self.video_widget.clear_scrub_frame()
@@ -167,7 +173,7 @@ class WindowFilesMixin:
     def _restart_scrub_grid(self, with_modal_progress: bool = False):
         if not self.is_video or not self.file_path or self.duration <= 0:
             return
-        self.frame_cache.clear()
+        self._clear_frame_cache()
         h = self._get_preview_height()
         sw = getattr(self, "video_src_w", 1920)
         sh = getattr(self, "video_src_h", 1080)
@@ -236,21 +242,47 @@ class WindowFilesMixin:
             )
 
     # === [БЛОК 36.3: НАКОПИТЕЛЬНЫЙ КЭШ КАДРОВ, КОНТЕКСТНОЕ МЕНЮ ВИДЕО (ПКМ) И ПРЕДПРОСМОТР] ===
+    def _clear_frame_cache(self):
+        self.frame_cache.clear()
+        self._frame_cache_bytes = 0
+
+    def _drop_cached_frame(self, key: int):
+        image = self.frame_cache.pop(key, None)
+        if image is not None:
+            self._frame_cache_bytes = max(
+                0, self._frame_cache_bytes - image.sizeInBytes()
+            )
+
+    def _store_cached_frame(self, sec_millis: int, image: QImage):
+        """Кладёт кадр в кэш, следя за числом и суммарным объёмом."""
+        if image.isNull():
+            return
+        if sec_millis in self.frame_cache:
+            self._drop_cached_frame(sec_millis)
+        self.frame_cache[sec_millis] = image
+        self._frame_cache_bytes += image.sizeInBytes()
+        while self.frame_cache and (
+            len(self.frame_cache) > FRAME_CACHE_MAX_ITEMS
+            or (
+                self._frame_cache_bytes > FRAME_CACHE_BUDGET_BYTES
+                and len(self.frame_cache) > 1
+            )
+        ):
+            self._drop_cached_frame(next(iter(self.frame_cache)))
+
     def _on_scrub_frame_ready(self, load_id: int, sec_millis: int, qimg: QImage):
         if load_id != self.load_counter:
             return
-        pix = QPixmap.fromImage(qimg)
-        if len(self.frame_cache) > 2500:
-            oldest_key = next(iter(self.frame_cache))
-            self.frame_cache.pop(oldest_key, None)
-        self.frame_cache[sec_millis] = pix
+        # QImage хранится как есть: QPixmap здесь только добавлял копию
+        # и аллокацию на GUI-потоке для каждого кадра полосы.
+        self._store_cached_frame(sec_millis, qimg)
 
         if (
             self._last_scrub_centis >= 0
             and abs(sec_millis - self._last_scrub_centis) <= 350
         ):
             if self.player.playbackState() != QMediaPlayer.PlayingState:
-                self.video_widget.set_scrub_frame(pix)
+                self.video_widget.set_scrub_frame(qimg)
 
     def _show_nearest_cached_frame(self, sec: float, request_dense_strip: bool = False):
         if not self.is_video or not self.file_path or self.duration <= 0:

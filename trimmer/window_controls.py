@@ -127,6 +127,7 @@ class WindowControlsMixin:
 
     def closeEvent(self, event):
         self.player.stop()
+        self.video_widget.shutdown()
         self.gpu_scrub_worker.stop_worker()
         self.cpu_scrub_worker.stop_worker()
         self._clear_track_players()

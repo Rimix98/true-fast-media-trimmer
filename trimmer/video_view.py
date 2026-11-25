@@ -3,16 +3,22 @@
 Предпросмотр выводится через Qt Quick: сцена рендерится бэкендом RHI,
 который в ``trimmer.app`` переключён на Vulkan. QOpenGLWidget больше не
 используется, поэтому весь путь отрисовки видео идёт через Vulkan.
+
+Кадры пониженного разрешения готовятся в отдельном потоке
+(``trimmer.preview_convert``) и приходят в QML уже готовым QImage — без
+QPixmap и лишних копий.
 """
 
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, Qt, QUrl
 from PySide6.QtGui import QColor, QImage, QPixmap
-from PySide6.QtMultimedia import QVideoSink
+from PySide6.QtMultimedia import QVideoFrame, QVideoSink
 from PySide6.QtQuick import QQuickImageProvider
 from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtWidgets import QVBoxLayout, QWidget
+
+from trimmer.preview_convert import PreviewFrameConverter, convert_frame
 
 _QML_FILE = Path(__file__).with_name("video_view.qml")
 
@@ -39,10 +45,12 @@ class ClickableVideoWidget(QWidget):
         self.on_click = on_click
         self.on_double_click = on_double_click
 
-        self._downscaled_frame_pix = None
-        self.preview_pixmap = None
+        self._downscaled_frame_img = QImage()
+        self.preview_image = QImage()
         self.preview_target_height = 0
         self._frame_seq = 0
+        self._preview_generation = 0
+        self._last_shown_key = None
 
         self.setCursor(Qt.PointingHandCursor)
         self.setStyleSheet("background-color: #0D0D0D; border: none;")
@@ -79,14 +87,21 @@ class ClickableVideoWidget(QWidget):
         )
 
         # Отдельный приёмник для режима пониженного разрешения: кадры
-        # уменьшаются вручную и показываются через QML-картинку.
+        # уменьшаются в фоновом потоке и показываются через QML-картинку.
         self.video_sink = QVideoSink(self)
         self.video_sink.videoFrameChanged.connect(self._on_video_frame)
+        self._converter = PreviewFrameConverter(self)
+        self._converter.scaled.connect(self._on_preview_scaled)
+        self._converter.start()
 
     @property
     def video_item(self):
         """Совместимый псевдоним вывода видео (раньше — QGraphicsVideoItem)."""
         return self.video_output
+
+    def shutdown(self):
+        """Останавливает фоновый конвертер перед закрытием окна."""
+        self._converter.stop()
 
     # === [БЛОК 24: СОБЫТИЯ ВИДЕОВИДЖЕТА И ИНИЦИАЛИЗАЦИЯ ГЛАВНОГО ОКНА] ===
     def eventFilter(self, obj, event):
@@ -113,33 +128,62 @@ class ClickableVideoWidget(QWidget):
         self._qml_root.setProperty("backgroundColor", color)
 
     def _on_video_frame(self, frame):
-        if self.preview_target_height <= 0 or not frame.isValid():
+        # Конвертируем только то, что реально покажем: при скрытом виджете
+        # или поверх кадра скраббинга работа была бы впустую.
+        if (
+            self.preview_target_height <= 0
+            or not frame.isValid()
+            or not self._quick.isVisible()
+            or not self.preview_image.isNull()
+        ):
             return
-        qimg = frame.toImage()
-        if qimg.isNull():
-            return
-        h = self.preview_target_height
-        aspect = qimg.width() / max(1, qimg.height())
-        w = max(16, int(round(h * aspect)))
-        low_res = qimg.scaled(w, h, Qt.IgnoreAspectRatio, Qt.FastTransformation)
-        self._downscaled_frame_pix = QPixmap.fromImage(low_res)
-        if self.preview_pixmap is None:
-            self._show_frame_image(low_res, smooth=False)
+
+        self._preview_generation += 1
+        if frame.handleType() == QVideoFrame.HandleType.NoHandle:
+            self._converter.submit(
+                frame, self._preview_generation, self.preview_target_height
+            )
+        else:
+            # GPU-кадр нельзя читать из чужого потока — конвертируем здесь.
+            self._on_preview_scaled(
+                self._preview_generation,
+                convert_frame(frame, self.preview_target_height),
+            )
+
+    def _on_preview_scaled(self, generation: int, image: QImage):
+        if (
+            self.preview_target_height <= 0
+            or generation < self._preview_generation
+            or image.isNull()
+        ):
+            return  # режим уже сменился или кадр устарел, пока конвертировался
+        self._downscaled_frame_img = image
+        if self.preview_image.isNull():
+            self._show_frame_image(image, smooth=False)
 
     def _show_frame_image(self, image: QImage, smooth: bool = True):
-        if self._frame_item is None:
+        if self._frame_item is None or image.isNull():
             return
+        key = (image.cacheKey(), bool(smooth))
+        if key == self._last_shown_key and self._frame_item.property("visible"):
+            return  # тот же кадр уже на экране — не перезагружаем текстуру
+        self._last_shown_key = key
         self._frame_seq += 1
         self._image_provider.set_image(image)
-        self._frame_item.setProperty("smooth", bool(smooth))
+        if bool(self._frame_item.property("smooth")) != bool(smooth):
+            self._frame_item.setProperty("smooth", bool(smooth))
         self._frame_item.setProperty(
             "source", QUrl(f"image://trimmerframe/frame?{self._frame_seq}")
         )
-        self._frame_item.setProperty("visible", True)
-        if self._video_output_item is not None:
+        if not self._frame_item.property("visible"):
+            self._frame_item.setProperty("visible", True)
+        if self._video_output_item is not None and self._video_output_item.property(
+            "visible"
+        ):
             self._video_output_item.setProperty("visible", False)
 
     def _show_video_output(self):
+        self._last_shown_key = None
         if self._video_output_item is not None:
             self._video_output_item.setProperty("visible", True)
         if self._frame_item is not None:
@@ -147,31 +191,30 @@ class ClickableVideoWidget(QWidget):
             self._frame_item.setProperty("source", QUrl())
 
     def _refresh_display(self):
-        if self.preview_pixmap is not None and not self.preview_pixmap.isNull():
+        if not self.preview_image.isNull():
             self._show_frame_image(
-                self.preview_pixmap.toImage(),
+                self.preview_image,
                 smooth=self.preview_target_height == 0,
             )
-        elif (
-            self.preview_target_height > 0
-            and self._downscaled_frame_pix is not None
-            and not self._downscaled_frame_pix.isNull()
-        ):
-            self._show_frame_image(self._downscaled_frame_pix.toImage(), smooth=False)
+        elif self.preview_target_height > 0 and not self._downscaled_frame_img.isNull():
+            self._show_frame_image(self._downscaled_frame_img, smooth=False)
         else:
             self._show_video_output()
 
     def set_preview_resolution(self, target_h: int):
         self.preview_target_height = target_h
+        self._preview_generation += 1
         if target_h <= 0:
-            self._downscaled_frame_pix = None
+            self._downscaled_frame_img = QImage()
         self._refresh_display()
 
-    def set_scrub_frame(self, pix: QPixmap):
-        self.preview_pixmap = pix
+    def set_scrub_frame(self, image):
+        if isinstance(image, QPixmap):
+            image = image.toImage()
+        self.preview_image = image
         self._refresh_display()
 
     def clear_scrub_frame(self):
-        if self.preview_pixmap is not None:
-            self.preview_pixmap = None
+        if not self.preview_image.isNull():
+            self.preview_image = QImage()
             self._refresh_display()

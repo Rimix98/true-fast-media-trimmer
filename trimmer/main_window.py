@@ -71,6 +71,7 @@ class MediaTrimmerWindow(
         self._smooth_scroll_timer.timeout.connect(self._tick_smooth_scroll)
 
         self.frame_cache = {}
+        self._frame_cache_bytes = 0
         self._keyframe_scan = None
         self._last_scrub_centis = -1
         self._scrub_anchor_sec = 0.0
