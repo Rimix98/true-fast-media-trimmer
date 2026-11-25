@@ -25,7 +25,7 @@ def _find_ffprobe():
 
 FFPROBE_BIN = _find_ffprobe()
 
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.0.2"
 GITHUB_VERSION_URL = "https://raw.githubusercontent.com/Rimix98/true-fast-media-trimmer/refs/heads/main/version.txt"
 GITHUB_SCRIPT_URL = "https://raw.githubusercontent.com/Rimix98/true-fast-media-trimmer/refs/heads/main/fast-media-trimmer.py"
 
