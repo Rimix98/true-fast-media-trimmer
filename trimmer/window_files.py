@@ -157,7 +157,7 @@ class WindowFilesMixin:
         self._apply_all_volumes()
         if self.is_video:
             self.video_widget.set_preview_resolution(0)
-            self.player.setVideoOutput(self.video_widget.video_item)
+            self.player.setVideoOutput(self.video_widget.video_output)
         self.player.setSource(QUrl.fromLocalFile(str(self.file_path)))
         self.player.pause()
         self.player.setPosition(0)
@@ -501,4 +501,4 @@ class WindowFilesMixin:
         if target_h > 0:
             self.player.setVideoOutput(self.video_widget.video_sink)
         else:
-            self.player.setVideoOutput(self.video_widget.video_item)
+            self.player.setVideoOutput(self.video_widget.video_output)

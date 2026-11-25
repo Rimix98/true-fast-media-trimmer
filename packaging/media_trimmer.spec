@@ -9,7 +9,7 @@
 import os
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import collect_all, collect_data_files
 
 SPEC_DIR = Path(SPECPATH)
 ROOT = SPEC_DIR.parent
@@ -22,11 +22,24 @@ ICON_ICO = SPEC_DIR / "media_trimmer.ico"
 # иначе в сборке не окажется FFMPEG_BIN.
 ffmpeg_datas, ffmpeg_binaries, ffmpeg_hidden = collect_all("imageio_ffmpeg")
 
+# QML-модули, нужные видеопредпросмотру (Qt Quick + Qt Multimedia).
+qml_datas = collect_data_files(
+    "PySide6",
+    includes=[
+        "Qt/qml/QtCore/**",
+        "Qt/qml/QtQml/**",
+        "Qt/qml/QtQuick/**",
+        "Qt/qml/QtMultimedia/**",
+    ],
+)
+
+app_datas = [(str(ROOT / "trimmer" / "video_view.qml"), "trimmer")] + qml_datas
+
 a = Analysis(
     [str(ROOT / "main.py")],
     pathex=[str(ROOT)],
     binaries=ffmpeg_binaries,
-    datas=ffmpeg_datas,
+    datas=app_datas + ffmpeg_datas,
     hiddenimports=ffmpeg_hidden,
     hookspath=[],
     hooksconfig={},

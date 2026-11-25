@@ -83,7 +83,7 @@ class WindowUiMixin:
         )
         self.video_widget.on_context_menu = self._open_video_context_menu
         self.video_widget.setMinimumHeight(140)
-        self.player.setVideoOutput(self.video_widget.video_item)
+        self.player.setVideoOutput(self.video_widget.video_output)
 
         self.wave_scroll = QScrollArea()
         self.wave_scroll.setWidgetResizable(False)
@@ -385,11 +385,11 @@ class WindowUiMixin:
         self.ctrl_bar.setStyleSheet(
             f"background-color: {panel_bg}; border-radius: 4px;"
         )
+        video_bg = "#0D0D0D" if is_dark else "#E4E4E7"
         self.video_widget.setStyleSheet(
-            "background-color: #0D0D0D; border: none;"
-            if is_dark
-            else "background-color: #E4E4E7; border: none;"
+            f"background-color: {video_bg}; border: none;"
         )
+        self.video_widget.set_background_color(video_bg)
         # === [БЛОК 31: СТИЛИ КНОПОК И ПОЛЗУНКОВ ГЛАВНОГО ОКНА] ===
         self.btn_open.setStyleSheet(
             f"background-color: {accent}; color: {btn_fg}; font-weight: bold; padding: 6px 14px; border-radius: 3px;"
